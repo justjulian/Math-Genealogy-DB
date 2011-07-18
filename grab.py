@@ -34,6 +34,8 @@ class Grabber:
         self.name = None
         self.institution = None
         self.year = None
+        self.dissertation = None
+        self.numberOfDescendants = None
         self.advisors = []
         self.descendants = []
 
@@ -84,6 +86,13 @@ class Grabber:
                     self.institution = None
                 if inst_year[1].split(',')[0].strip().isdigit():
                     self.year = int(inst_year[1].split(',')[0].strip())
+                    
+            if line.find('thesisTitle') > -1:
+                line = lines.next()
+                line = lines.next()
+                self.dissertation = self.unescape(line.split('</span></div>')[0].strip())
+                if len(self.dissertation) == 0:
+                    self.dissertation = None
 
             if 'Advisor' in line:
                 advisorLine = line
@@ -101,7 +110,16 @@ class Grabber:
             if '<tr ' in line:
                 descendant_id = int(line.split('a href=\"id.php?id=')[1].split('\">')[0])
                 self.descendants.append(descendant_id)
-                
+            
+            # Used only '</a> and ' as a search string and not '>students</a> and '
+            # because 'students' can change to 'student' !!
             if 'According to our current on-line database' in line:
+                self.numberOfDescendants = int(line.split('</a> and ')[1].split(' <a href=')[0]) 
+            
+            if 'No students known.' in line:
+                self.numberOfDescendants = 0
+            
+            if 'If you have additional information or' in line:
                 break
-        return [self.name, self.institution, self.year, self.advisors, self.descendants]
+            
+        return [self.name, self.institution, self.year, self.advisors, self.descendants, self.dissertation, self.numberOfDescendants]
