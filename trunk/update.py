@@ -24,7 +24,7 @@ class Updater:
                 self.cursor = self.connection.cursor()
 
                 self.cursor.execute("CREATE TABLE IF NOT EXISTS mathematician (id INTEGER PRIMARY KEY ASC ON CONFLICT REPLACE, name TEXT, university TEXT, year INTEGER, dissertation TEXT, descendants INTEGER)")    
-                self.cursor.execute("CREATE TABLE IF NOT EXISTS advised (idAdvisor INTEGER UNIQUE ON CONFLICT IGNORE, idStudent INTEGER UNIQUE ON CONFLICT IGNORE, advisorOrder INTEGER)")
+                self.cursor.execute("CREATE TABLE IF NOT EXISTS advised (idAdvisor INTEGER, idStudent INTEGER, advisorOrder INTEGER, UNIQUE (idAdvisor, idStudent) ON CONFLICT IGNORE)")
  
                 self.connection.commit()
     
@@ -52,41 +52,43 @@ class Updater:
         if self.foundID:
             for id in self.foundIDs:
                 grabber = grab.Grabber(id)
-                [name, uni, year, advisors, students] = grabber.extractNodeInformation()
+                [name, uni, year, advisors, students, dissertation, numberOfDescendants] = grabber.extractNodeInformation()
                 print "ID: {0}  Name: {1}  University: {2}  Year: {3}".format(id, name, uni, year)
-                self.updateByName(id, name, uni, year, advisors)
+                self.updateByName(id, name, uni, year, advisors, dissertation, numberOfDescendants)
     
         else:
             print "There is no mathematician in the online-database with that entered last name."
 
 
-    def naiveUpdate(self, id, name, uni, year, advisors):
-        self.cursor.execute("INSERT OR REPLACE INTO mathematician VALUES (?, ?, ?, ?, ?, ?)",  (id, name, uni, year, None, None))
+    def naiveUpdate(self, id, name, uni, year, advisors, dissertation, numberOfDescendants):
+        self.cursor.execute("INSERT OR REPLACE INTO mathematician VALUES (?, ?, ?, ?, ?, ?)",  (id, name, uni, year, dissertation, numberOfDescendants))
+        advOrder = 0
         
         for advID in advisors:
-            self.cursor.execute("INSERT OR REPLACE INTO advised VALUES (?, ?, ?)",  (advID, id, None))
+            advOrder += 1
+            self.cursor.execute("INSERT OR REPLACE INTO advised VALUES (?, ?, ?)",  (advID, id, advOrder))
             self.connection.commit()
 
 
-    def updateByName(self, id, name, uni, year, advisors):
+    def updateByName(self, id, name, uni, year, advisors, dissertation, numberOfDescendants):
         self.connectToDatabase()
         
         if self.naiveMode:
-            self.naiveUpdate(id, name, uni, year, advisors)
+            self.naiveUpdate(id, name, uni, year, advisors, dissertation, numberOfDescendants)
             
         else:    
             self.cursor.execute("SELECT id from mathematician WHERE id=?", (id,))
             tempList = self.cursor.fetchall()
 
             if len(tempList) == 0:
-                self.naiveUpdate(id, name, uni, year, advisors)
+                self.naiveUpdate(id, name, uni, year, advisors, dissertation, numberOfDescendants)
 
 
     def updateByID(self, id, ancestors, descendants):
         try:
             grabber = grab.Grabber(id)
             print "Grabbing record #%d" % (id)
-            [name, uni, year, advisors, students] = grabber.extractNodeInformation()
+            [name, uni, year, advisors, students, dissertation, numberOfDescendants] = grabber.extractNodeInformation()
 
         except ValueError:
             # The given id does not exist in the Math Genealogy Project's database.
@@ -95,7 +97,7 @@ class Updater:
         self.connectToDatabase()
         
         if self.naiveMode:
-            self.naiveUpdate(id, name, uni, year, advisors)
+            self.naiveUpdate(id, name, uni, year, advisors, dissertation, numberOfDescendants)
             
         #else:
             
