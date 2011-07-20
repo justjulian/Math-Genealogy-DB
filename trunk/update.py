@@ -15,6 +15,8 @@ class Updater:
         self.connection = None
         self.cursor = None
         self.naiveMode = naive
+        self.currentAdvisorsGrab = []
+        self.currentStudentsGrab = []
 
 
     def connectToDatabase(self):
@@ -51,8 +53,7 @@ class Updater:
 
         if self.foundID:
             for id in self.foundIDs:
-                grabber = grab.Grabber(id)
-                [name, uni, year, advisors, students, dissertation, numberOfDescendants] = grabber.extractNodeInformation()
+                [name, uni, year, advisors, students, dissertation, numberOfDescendants] = self.grabNode(id)
                 print "ID: {0}  Name: {1}  University: {2}  Year: {3}".format(id, name, uni, year)
                 self.updateByName(id, name, uni, year, advisors, dissertation, numberOfDescendants)
     
@@ -84,24 +85,64 @@ class Updater:
                 self.naiveUpdate(id, name, uni, year, advisors, dissertation, numberOfDescendants)
 
 
-    def updateByID(self, id, ancestors, descendants):
+    def grabNode(self, id):
         try:
             grabber = grab.Grabber(id)
-            print "Grabbing record #%d" % (id)
+
+            if not self.foundID:
+                print "Grabbing record #%d" % (id)
+                
             [name, uni, year, advisors, students, dissertation, numberOfDescendants] = grabber.extractNodeInformation()
 
         except ValueError:
             # The given id does not exist in the Math Genealogy Project's database.
             raise
         
+        return [name, uni, year, advisors, students, dissertation, numberOfDescendants]
+
+
+    def recursiveAncestors(self, advisors):
+        for advisor in advisors:
+            [name, uni, year, nextAdvisors, nextStudents, dissertation, numberOfDescendants] = self.grabNode(advisor)
+            self.currentAdvisorsGrab.append(advisor)
+            self.naiveUpdate(advisor, name, uni, year, nextAdvisors, dissertation, numberOfDescendants)
+
+            if len(nextAdvisors) > 0 and (nextAdvisors[0] in self.currentAdvisorsGrab):
+                return
+            elif len(nextAdvisors) > 0:
+                self.recursiveAncestors(nextAdvisors)
+
+
+    def recursiveDescendants(self, students):
+        for student in students:
+            [name, uni, year, nextAdvisors, nextStudents, dissertation, numberOfDescendants] = self.grabNode(student)
+            self.currentStudentsGrab.append(student)
+            self.naiveUpdate(student, name, uni, year, nextAdvisors, dissertation, numberOfDescendants)
+
+            if len(nextStudents) > 0 and (nextStudents[0] in self.currentStudentsGrab):
+                return
+            elif len(nextStudents) > 0:
+                self.recursiveDescendants(nextStudents)
+
+
+    def updateByID(self, ids, ancestors, descendants):
         self.connectToDatabase()
         
-        if self.naiveMode:
-            self.naiveUpdate(id, name, uni, year, advisors, dissertation, numberOfDescendants)
-            
-        #else:
-            
+        for id in ids:
+            [name, uni, year, advisors, students, dissertation, numberOfDescendants] = self.grabNode(id)
         
+            if self.naiveMode:
+                self.naiveUpdate(id, name, uni, year, advisors, dissertation, numberOfDescendants)
+            
+                if ancestors:
+                    self.recursiveAncestors(advisors)
+                    
+                if descendants:
+                    self.recursiveDescendants(students)
+            
+            #else:
+                # Smart Update
+
 
 #self.cursor.execute("SELECT name from mathematician")
 #for row in self.cursor:
