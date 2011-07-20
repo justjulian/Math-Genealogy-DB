@@ -107,9 +107,7 @@ class Updater:
             self.currentAdvisorsGrab.append(advisor)
             self.naiveUpdate(advisor, name, uni, year, nextAdvisors, dissertation, numberOfDescendants)
 
-            if len(nextAdvisors) > 0 and (nextAdvisors[0] in self.currentAdvisorsGrab):
-                return
-            elif len(nextAdvisors) > 0:
+            if len(nextAdvisors) > 0 and (nextAdvisors[0] not in self.currentAdvisorsGrab):
                 self.recursiveAncestors(nextAdvisors)
 
 
@@ -119,9 +117,7 @@ class Updater:
             self.currentStudentsGrab.append(student)
             self.naiveUpdate(student, name, uni, year, nextAdvisors, dissertation, numberOfDescendants)
 
-            if len(nextStudents) > 0 and (nextStudents[0] in self.currentStudentsGrab):
-                return
-            elif len(nextStudents) > 0:
+            if len(nextStudents) > 0 and (nextStudents[0] not in self.currentStudentsGrab):
                 self.recursiveDescendants(nextStudents)
 
 
