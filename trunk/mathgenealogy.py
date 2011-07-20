@@ -42,9 +42,9 @@ class Mathgenealogy:
         self.parser.add_option("-f", "--force", action="store_true", dest="forceNaive", default=False,
                                help="Force the tool to use naive update logic, which downloads all records of every mathematician you want to update without looking for any changes and stores every entry in the local database (replaces existing ones). Only available for update methods, not for search methods!")
         self.parser.add_option("-a", "--with-ancestors", action="store_true", dest="ancestors", default=False,
-                               help="Retrieve ancestors of IDs and include in graph. Only available for update methods, not for search methods!")
+                               help="Retrieve ancestors of IDs and include in graph. Only available for update-by-ID!")
         self.parser.add_option("-d", "--with-descendants", action="store_true", dest="descendants", default=False,
-                               help="Retrieve descendants of IDs and include in graph. Only available for update methods, not for search methods!")
+                               help="Retrieve descendants of IDs and include in graph. Only available for update-by-ID!")
         
         self.parser.add_option("-L", "--least-common-advisor", action="store_true", dest="lca", default=False,
                                help="Search method: Search for the least common advisor of an arbitrary number of mathematicians. INPUT: IDs of the mathematicians separated by spaces")
@@ -90,6 +90,9 @@ class Mathgenealogy:
         if (self.updateByName or self.updateByID or self.forceNaive or self.ancestors or self.descendants) and (self.lca or self.gss or self.aa or self.ad or self.sp or self.plot or (self.writeFilename is not None)):
             raise SyntaxError("%s: error: invalid combination of options" % (self.parser.get_prog_name()))
         
+        if (self.updateByName and (self.ancestors or self.descendants)):
+            raise SyntaxError("%s: error: invalid combination of options" % (self.parser.get_prog_name()))
+        
         if self.updateByName and self.updateByID:
             raise SyntaxError("%s: error: you can only choose one update method" % (self.parser.get_prog_name()))
         
@@ -114,8 +117,9 @@ class Mathgenealogy:
         # Check for the correct content (updateByName may contain anything)
         if not self.updateByName:
             for arg in args:
-                if arg not in string.digits:
-                    raise SyntaxError("%s: error: all arguments have to be numbers" % (self.parser.get_prog_name()))
+                for digit in arg:
+                    if digit not in string.digits:
+                        raise SyntaxError("%s: error: all arguments have to be numbers" % (self.parser.get_prog_name()))
         
         # Check for the correct number of arguments
         if self.updateByName or self.updateByID or self.aa or self.ad:
