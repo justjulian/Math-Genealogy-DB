@@ -23,6 +23,7 @@ class Updater:
         if self.connection == None:
             try:
                 self.connection = sqlite3.connect("MG-DB")
+                self.connection.row_factory = sqlite3.Row
                 self.cursor = self.connection.cursor()
 
                 self.cursor.execute("CREATE TABLE IF NOT EXISTS mathematician (id INTEGER PRIMARY KEY ASC ON CONFLICT REPLACE, name TEXT, university TEXT, year INTEGER, dissertation TEXT, descendants INTEGER)")    
@@ -105,8 +106,15 @@ class Updater:
         for advisor in advisors:
             [name, uni, year, nextAdvisors, nextStudents, dissertation, numberOfDescendants] = self.grabNode(advisor)
             self.currentAdvisorsGrab.append(advisor)
+            
+            # Not possible for ancestors as the number of all ancestors isn't stored.
+            #self.cursor.execute("SELECT id, descendants from mathematician WHERE id=?", (advisor,))
+            #tempList = self.cursor.fetchall()
+            
+            #if not self.naiveMode and len(tempList) == 1 and tempList[0]["descendants"] == numberOfDescendants:
+            #    return
+            
             self.naiveUpdate(advisor, name, uni, year, nextAdvisors, dissertation, numberOfDescendants)
-
             ungrabbedAdvisors = []
 
             if len(nextAdvisors) > 0:
@@ -121,8 +129,14 @@ class Updater:
         for student in students:
             [name, uni, year, nextAdvisors, nextStudents, dissertation, numberOfDescendants] = self.grabNode(student)
             self.currentStudentsGrab.append(student)
+            
+            self.cursor.execute("SELECT id, descendants from mathematician WHERE id=?", (student,))
+            tempList = self.cursor.fetchall()
+            
+            if not self.naiveMode and len(tempList) == 1 and tempList[0]["descendants"] == numberOfDescendants:
+                return
+            
             self.naiveUpdate(student, name, uni, year, nextAdvisors, dissertation, numberOfDescendants)
-
             ungrabbedStudents = []
 
             if len(nextStudents) > 0:
@@ -138,18 +152,13 @@ class Updater:
         
         for id in ids:
             [name, uni, year, advisors, students, dissertation, numberOfDescendants] = self.grabNode(id)
-        
-            if self.naiveMode:
-                self.naiveUpdate(id, name, uni, year, advisors, dissertation, numberOfDescendants)
+            self.naiveUpdate(id, name, uni, year, advisors, dissertation, numberOfDescendants)
             
-                if ancestors:
-                    self.recursiveAncestors(advisors)
+            if ancestors:
+                self.recursiveAncestors(advisors)
                     
-                if descendants:
-                    self.recursiveDescendants(students)
-            
-            #else:
-                # Smart Update
+            if descendants:
+                self.recursiveDescendants(students)
 
 
 #self.cursor.execute("SELECT name from mathematician")
