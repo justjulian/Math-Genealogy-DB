@@ -19,9 +19,9 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import re
-from htmlentitydefs import name2codepoint
+from html.entities import name2codepoint
 
 class Grabber:
     """
@@ -41,7 +41,7 @@ class Grabber:
 
     def unescape(self, s):
         return re.sub('&(%s);' % '|'.join(name2codepoint),\
-                      lambda m: unichr(name2codepoint[m.group(1)]), s)
+                      lambda m: chr(name2codepoint[m.group(1)]), s)
 
     def getPage(self):
         """
@@ -49,7 +49,7 @@ class Grabber:
         """
         if self.pagestr is None:
             url = 'http://genealogy.math.ndsu.nodak.edu/id.php?id=' + str(self.id)
-            page = urllib.urlopen(url)
+            page = urllib.request.urlopen(url)
             self.pagestr = page.read()
             self.pagestr = self.pagestr.decode('utf-8')
             
@@ -76,20 +76,20 @@ class Grabber:
         lines = iter(psarray)
         for line in lines:
             if line.find('h2 style=') > -1:
-                line = lines.next()
+                line = next(lines)
                 self.name = self.unescape(line.split('</h2>')[0].strip())
 
             if '#006633; margin-left: 0.5em">' in line:
                 inst_year = line.split('#006633; margin-left: 0.5em">')[1].split("</span>")[:2]
                 self.institution = self.unescape(inst_year[0].strip())
-                if self.institution == u"":
+                if self.institution == b"":
                     self.institution = None
                 if inst_year[1].split(',')[0].strip().isdigit():
                     self.year = int(inst_year[1].split(',')[0].strip())
                     
             if line.find('thesisTitle') > -1:
-                line = lines.next()
-                line = lines.next()
+                line = next(lines)
+                line = next(lines)
                 self.dissertation = self.unescape(line.split('</span></div>')[0].strip())
                 if len(self.dissertation) == 0:
                     self.dissertation = None
