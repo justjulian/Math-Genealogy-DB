@@ -1,6 +1,6 @@
 import sqlite3
 import grab
-import urllib
+import urllib.request, urllib.parse, urllib.error
 
 
 
@@ -32,12 +32,12 @@ class Updater:
                 self.connection.commit()
     
             except sqlite3.Error:
-                print "Can neither create local database nor connect with an existing one!"
+                print("Can neither create local database nor connect with an existing one!")
                 raise
 
 
     def findID(self, lastName):
-        page = urllib.urlopen("http://genealogy.math.ndsu.nodak.edu/query-prep.php", urllib.urlencode({"family_name":lastName}))
+        page = urllib.request.urlopen("http://genealogy.math.ndsu.nodak.edu/query-prep.php", urllib.parse.urlencode({"family_name":lastName}))
         pagestr = page.read()
         pagestr = pagestr.decode("utf-8")
 
@@ -55,11 +55,11 @@ class Updater:
         if self.foundID:
             for id in self.foundIDs:
                 [name, uni, year, advisors, students, dissertation, numberOfDescendants] = self.grabNode(id)
-                print "ID: {0}  Name: {1}  University: {2}  Year: {3}".format(id, name, uni, year)
+                print("ID: {}  Name: {}  University: {}  Year: {}".format(id, name, uni, year))
                 self.updateByName(id, name, uni, year, advisors, dissertation, numberOfDescendants)
     
         else:
-            print "There is no mathematician in the online-database with that entered last name."
+            print("There is no mathematician in the online-database with that entered last name.")
 
 
     def naiveUpdate(self, id, name, uni, year, advisors, dissertation, numberOfDescendants):
@@ -91,7 +91,7 @@ class Updater:
             grabber = grab.Grabber(id)
 
             if not self.foundID:
-                print "Grabbing record #%d" % (id)
+                print("Grabbing record #{}".format(id))
                 
             [name, uni, year, advisors, students, dissertation, numberOfDescendants] = grabber.extractNodeInformation()
 
