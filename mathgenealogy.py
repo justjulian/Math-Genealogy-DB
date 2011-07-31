@@ -82,6 +82,10 @@ class Mathgenealogy:
         self.verbose = options.verbose
         self.writeFilename = options.filename
         
+        if options.print_version:
+            print("Math-Genealogy-DB Version 1.0")
+            self.parser.exit()
+        
         # Check for no arguments
         if len(args) == 0:
             raise SyntaxError("%s: error: no IDs or no last name passed" % (self.parser.get_prog_name()))
@@ -140,10 +144,6 @@ class Mathgenealogy:
                 self.passedIDs.append(int(arg))
             
         # Execute the correct function depending on the options which have been set
-        if options.print_version:
-            print "Math-Genealogy-DB Version 1.0"
-            self.parser.exit()
-            
         if self.updateByName:
             updater = update.Updater(self.forceNaive)
             updater.findID(self.passedName)
