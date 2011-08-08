@@ -32,10 +32,10 @@ class Grabber:
         self.id = id
         self.pagestr = None
         self.name = None
-        self.institution = None
-        self.year = None
-        self.dissertation = None
         self.numberOfDescendants = None
+        self.institution = []
+        self.year = []
+        self.dissertation = []
         self.advisors = []
         self.descendants = []
 
@@ -61,7 +61,10 @@ class Grabber:
         """
         if self.pagestr is None:
             self.getPage()
-            
+        
+        self.institution = []
+        self.year = []
+        self.dissertation = []    
         self.advisors = []
         self.descendants = []
 
@@ -81,21 +84,28 @@ class Grabber:
 
             if '#006633; margin-left: 0.5em">' in line:
                 inst_year = line.split('#006633; margin-left: 0.5em">')[1].split("</span>")[:2]
-                self.institution = self.unescape(inst_year[0].strip())
-                if self.institution == b"":
-                    self.institution = None
-                if inst_year[1].split(',')[0].strip().isdigit():
-                    self.year = int(inst_year[1].split(',')[0].strip())
+                self.institution.append(self.unescape(inst_year[0].strip()))
+                self.year.append(self.unescape(inst_year[1].strip()))
+                
+                if len(self.institution[len(self.institution)-1]) == 0:
+                    self.institution[len(self.institution)-1] = None
+                if len(self.year[len(self.year)-1]) == 0:
+                    self.year[len(self.year)-1] = None
                     
             if line.find('thesisTitle') > -1:
                 line = next(lines)
                 line = next(lines)
-                self.dissertation = self.unescape(line.split('</span></div>')[0].strip())
-                if len(self.dissertation) == 0:
-                    self.dissertation = None
+                self.dissertation.append(self.unescape(line.split('</span></div>')[0].strip()))
+                if len(self.dissertation[len(self.dissertation)-1]) == 0:
+                    self.dissertation[len(self.dissertation)-1] = None
 
             if 'Advisor' in line:
                 advisorLine = line
+                
+                # Mark next set of advisors
+                if (len(self.institution) > 1) and ('a href=\"id.php?id=' in line):
+                    self.advisors.append(0)
+                
                 while 'Advisor' in advisorLine:
                     if 'a href=\"id.php?id=' in line:
                         # Extract link to advisor page.
@@ -111,7 +121,7 @@ class Grabber:
                 descendant_id = int(line.split('a href=\"id.php?id=')[1].split('\">')[0])
                 self.descendants.append(descendant_id)
             
-            # Used only '</a> and ' as a search string and not '>students</a> and '
+            # Uses only '</a> and ' as search string and not '>students</a> and '
             # because 'students' can change to 'student' !!
             if 'According to our current on-line database' in line:
                 self.numberOfDescendants = int(line.split('</a> and ')[1].split(' <a href=')[0]) 
