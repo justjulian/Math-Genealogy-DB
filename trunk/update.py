@@ -26,8 +26,9 @@ class Updater:
                 self.connection.row_factory = sqlite3.Row
                 self.cursor = self.connection.cursor()
 
-                self.cursor.execute("CREATE TABLE IF NOT EXISTS mathematician (id INTEGER PRIMARY KEY ASC ON CONFLICT REPLACE, name TEXT, university TEXT, year INTEGER, dissertation TEXT, descendants INTEGER)")    
-                self.cursor.execute("CREATE TABLE IF NOT EXISTS advised (idAdvisor INTEGER, idStudent INTEGER, advisorOrder INTEGER, UNIQUE (idAdvisor, idStudent) ON CONFLICT IGNORE)")
+                self.cursor.execute("CREATE TABLE IF NOT EXISTS mathematician (id INTEGER PRIMARY KEY ASC ON CONFLICT REPLACE, name TEXT, descendants INTEGER)")    
+                self.cursor.execute("CREATE TABLE IF NOT EXISTS advised (idAdvisor INTEGER, idStudent INTEGER, advisorOrder INTEGER, UNIQUE (idAdvisor, idStudent, advisorOrder) ON CONFLICT IGNORE)")
+                self.cursor.execute("CREATE TABLE IF NOT EXISTS dissertation (id INTEGER, title TEXT, university TEXT, year TEXT, UNIQUE (id, title) ON CONFLICT IGNORE)")
  
                 self.connection.commit()
     
@@ -55,20 +56,37 @@ class Updater:
         if self.foundID:
             for id in self.foundIDs:
                 [name, uni, year, advisors, students, dissertation, numberOfDescendants] = self.grabNode(id)
-                print("ID: {}  Name: {}  University: {}  Year: {}".format(id, name, uni, year))
+                print("ID: {}  Name: {}  University: {}  Year: {}".format(id, name, uni[0], year[0]))
                 self.updateByName(id, name, uni, year, advisors, dissertation, numberOfDescendants)
     
         else:
             print("There is no mathematician in the online-database with that entered last name.")
 
 
-    def naiveUpdate(self, id, name, uni, year, advisors, dissertation, numberOfDescendants):
-        self.cursor.execute("INSERT OR REPLACE INTO mathematician VALUES (?, ?, ?, ?, ?, ?)",  (id, name, uni, year, dissertation, numberOfDescendants))
+    def naiveUpdate(self, id, name, unis, years, advisors, dissertations, numberOfDescendants):
+        self.cursor.execute("INSERT OR REPLACE INTO mathematician VALUES (?, ?, ?)",  (id, name, numberOfDescendants))
+        
         advOrder = 0
         
-        for advID in advisors:
+        iterAdvisor = iter(advisors)
+        
+        for advID in iterAdvisor:
+            if advID == 0:
+                advOrder = 0
+                advID = next(iterAdvisor)
+                
             advOrder += 1
             self.cursor.execute("INSERT OR REPLACE INTO advised VALUES (?, ?, ?)",  (advID, id, advOrder))
+            self.connection.commit()    
+            
+        iterUni = iter(unis)
+        iterYear = iter(years)    
+            
+        for dissertation in dissertations:
+            uni = next(iterUni)
+            year = next(iterYear)
+            
+            self.cursor.execute("INSERT OR REPLACE INTO dissertation VALUES (?, ?, ?, ?)",  (id, dissertation, uni, year))
             self.connection.commit()
 
 
@@ -104,6 +122,9 @@ class Updater:
 
     def recursiveAncestors(self, advisors):
         for advisor in advisors:
+            if advisor == 0:
+                continue
+            
             [name, uni, year, nextAdvisors, nextStudents, dissertation, numberOfDescendants] = self.grabNode(advisor)
             self.currentAdvisorsGrab.append(advisor)
             
