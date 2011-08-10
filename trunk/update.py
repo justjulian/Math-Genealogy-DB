@@ -53,7 +53,7 @@ class Updater:
         Mathematics Genealogy Project. This ID is needed to run Update-by-ID.
         """
         page = urllib.request.urlopen("http://genealogy.math.ndsu.nodak.edu/query-prep.php", \
-                                      urllib.parse.urlencode({"family_name":lastName}))
+                                      urllib.parse.urlencode({"family_name":lastName}).encode())
         pagestr = page.read()
         pagestr = pagestr.decode("utf-8")
 
@@ -210,6 +210,9 @@ class Updater:
 
 
     def updateByID(self, ids, ancestors, descendants):
+        """
+        Grab the given ID(s) and grab their ancestors and/or descendants.
+        """
         self.connectToDatabase()
         
         for id in ids:
