@@ -18,15 +18,21 @@
 # LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+#
+# Modified 2011 by Julian Wintermayr
+
 
 import urllib.request, urllib.parse, urllib.error
 import re
 from html.entities import name2codepoint
 
+
+
 class Grabber:
     """
     Class for grabbing and parsing mathematician information from
-    Math Genealogy Database.
+    Math Genealogy Project.
     """
     def __init__(self, id):
         self.id = id
@@ -39,25 +45,36 @@ class Grabber:
         self.advisors = []
         self.descendants = []
 
+
     def unescape(self, s):
+        """
+        Example: "ä" in html-code is displayed as "&auml;" This needs to be converted
+                 back to "ä". That's the purpose of this function.
+        """
         return re.sub('&(%s);' % '|'.join(name2codepoint),\
                       lambda m: chr(name2codepoint[m.group(1)]), s)
 
+
     def getPage(self):
         """
-        Grab the page for self.id from the Math Genealogy Database.
+        Grab the page for self.id from the Math Genealogy Project.
         """
         if self.pagestr is None:
             url = 'http://genealogy.math.ndsu.nodak.edu/id.php?id=' + str(self.id)
             page = urllib.request.urlopen(url)
             self.pagestr = page.read()
             self.pagestr = self.pagestr.decode('utf-8')
+
             
     def extractNodeInformation(self):
         """
         For the mathematician in this object, extract the list of
         advisor ids, the mathematician name, the mathematician
         institution, and the year of the mathematician's degree.
+        Institution, year and dissertation are also lists as several
+        dissertations per mathematician are possible.
+        Year stores a text and not an integer as several years per
+        dissertation are possible.
         """
         if self.pagestr is None:
             self.getPage()
@@ -78,10 +95,12 @@ class Grabber:
 
         lines = iter(psarray)
         for line in lines:
+            # Get name
             if line.find('h2 style=') > -1:
                 line = next(lines)
                 self.name = self.unescape(line.split('</h2>')[0].strip())
 
+            # Get year and university
             if '#006633; margin-left: 0.5em">' in line:
                 inst_year = line.split('#006633; margin-left: 0.5em">')[1].split("</span>")[:2]
                 self.institution.append(self.unescape(inst_year[0].strip()))
@@ -91,7 +110,8 @@ class Grabber:
                     self.institution[len(self.institution)-1] = None
                 if len(self.year[len(self.year)-1]) == 0:
                     self.year[len(self.year)-1] = None
-                    
+            
+            # Get dissertation title        
             if line.find('thesisTitle') > -1:
                 line = next(lines)
                 line = next(lines)
@@ -99,6 +119,7 @@ class Grabber:
                 if len(self.dissertation[len(self.dissertation)-1]) == 0:
                     self.dissertation[len(self.dissertation)-1] = None
 
+            # Get all advisors
             if 'Advisor' in line:
                 advisorLine = line
                 
@@ -117,12 +138,14 @@ class Grabber:
                         # (Without this records with no advisor enter an infinite loop.)
                         advisorLine = ""
 
+            # Get students
             if '<tr ' in line:
                 descendant_id = int(line.split('a href=\"id.php?id=')[1].split('\">')[0])
                 self.descendants.append(descendant_id)
             
+            # Get number of descendants
             # Uses only '</a> and ' as search string and not '>students</a> and '
-            # because 'students' can change to 'student' !!
+            # because 'students' can change to 'student' !
             if 'According to our current on-line database' in line:
                 self.numberOfDescendants = int(line.split('</a> and ')[1].split(' <a href=')[0]) 
             
