@@ -1,3 +1,25 @@
+# Copyright (c) 2011 Julian Wintermayr
+# 
+# Permission is hereby granted, free of charge, to any person obtaining
+# a copy of this software and associated documentation files (the
+# "Software"), to deal in the Software without restriction, including
+# without limitation the rights to use, copy, modify, merge, publish,
+# distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so, subject to
+# the following conditions:
+# 
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
+# 
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+# NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+# LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+# WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
 import sqlite3
 import grab
 import urllib.request, urllib.parse, urllib.error
@@ -57,20 +79,20 @@ class Updater:
         pagestr = page.read()
         pagestr = pagestr.decode("utf-8")
 
-        # Split the page string at newline characters
+        # Split the page string at newline characters.
         psarray = pagestr.split("\n")
 
         for line in psarray:
             if 'a href=\"id.php?id=' in line:
-                # Store if there are mathematicians with that entered last name
+                # Store if there are mathematicians with that entered last name.
                 self.foundID = True
         
-                # Extract ID of found mathematicians
+                # Extract ID of found mathematicians.
                 id = int(line.split('a href=\"id.php?id=')[1].split('\">')[0])
                 self.foundIDs.append(id)
 
         if self.foundID:
-            # Print every found mathematician and store them in the local database
+            # Print every found mathematician and store them in the local database.
             for id in self.foundIDs:
                 [name, uni, year, advisors, students, dissertation, numberOfDescendants] = self.grabNode(id)
                 print("ID: {}  Name: {}  University: {}  Year: {}".format(id, name, uni[0], year[0]))
@@ -96,8 +118,8 @@ class Updater:
         
         for advID in iterAdvisor:
             # If advisors are separated by 0, then a new set of advisors starts
-            # which means, that there is also another dissertation
-            # Hence, the order must be reseted and the next advisors must be grabbed
+            # which means, that there is also another dissertation.
+            # Hence, the order must be reseted and the next advisors must be grabbed.
             if advID == 0:
                 advOrder = 0
                 advID = next(iterAdvisor)
@@ -162,14 +184,19 @@ class Updater:
 
 
     def recursiveAncestors(self, advisors):
+        """
+        Take the advisor list and grab them recursively.
+        Grabbed advisors will be stored in a separate list to avoid grabbing the same ID several times.
+        """
         for advisor in advisors:
+            # ID=0 just indicates that a new set of advisors begins here. ID=0 shouldn't be grabbed.
             if advisor == 0:
                 continue
             
             [name, uni, year, nextAdvisors, nextStudents, dissertation, numberOfDescendants] = self.grabNode(advisor)
             self.currentAdvisorsGrab.append(advisor)
             
-            # Not possible for ancestors as the number of all ancestors isn't stored.
+            # Not possible for ancestors as the number of all ancestors isn't stored online.
             #self.cursor.execute("SELECT id, descendants from mathematician WHERE id=?", (advisor,))
             #tempList = self.cursor.fetchall()
             
@@ -188,15 +215,26 @@ class Updater:
 
 
     def recursiveDescendants(self, students):
+        """
+        Take the student list and grab them recursively.
+        Grabbed students will be stored in a separate list to avoid grabbing the same ID several times.
+        """
         for student in students:
             [name, uni, year, nextAdvisors, nextStudents, dissertation, numberOfDescendants] = self.grabNode(student)
             self.currentStudentsGrab.append(student)
             
-            self.cursor.execute("SELECT id, descendants from mathematician WHERE id=?", (student,))
+            # -----------------------------------------------------------------------------------------------------
+            # TO-DO
+            # Now: Compare local stored number of descendants with online stored number of descendants.
+            # Should be: Compare online stored number of descendants with calculated number of descendants
+            # given by the tables. First need smart way to calculate this number.
+            # If numbers are equal, no mathematician has been added and no update is needed.
+            self.cursor.execute("SELECT descendants from mathematician WHERE id=?", (student,))
             tempList = self.cursor.fetchall()
             
             if not self.naiveMode and len(tempList) == 1 and tempList[0]["descendants"] == numberOfDescendants:
                 return
+            # -----------------------------------------------------------------------------------------------------
             
             self.naiveUpdate(student, name, uni, year, nextAdvisors, dissertation, numberOfDescendants)
             ungrabbedStudents = []
