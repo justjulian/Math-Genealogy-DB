@@ -1,3 +1,28 @@
+# Copyright (c) 2008, 2009 David Alber
+# 
+# Permission is hereby granted, free of charge, to any person obtaining
+# a copy of this software and associated documentation files (the
+# "Software"), to deal in the Software without restriction, including
+# without limitation the rights to use, copy, modify, merge, publish,
+# distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so, subject to
+# the following conditions:
+# 
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
+# 
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+# NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+# LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+# WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+#
+# Modified 2011 by Julian Wintermayr
+
+
 from optparse import OptionParser
 import string
 import update
@@ -6,8 +31,8 @@ import update
 
 class Mathgenealogy:
     """
-    A class for building Graphviz "dot" files for math genealogies
-    extracted from the Mathematics Genealogy Project website.
+    A class for parsing the command-line information and checking them. Use this
+    information to call the correct function.
     """
     def __init__(self):
         self.passedIDs = []
@@ -25,6 +50,7 @@ class Mathgenealogy:
         self.plot = False
         self.verbose = False
         self.writeFilename = None
+
 
     def parseInput(self):
         """
@@ -143,7 +169,7 @@ class Mathgenealogy:
             for arg in args:
                 self.passedIDs.append(int(arg))
             
-        # Execute the correct function depending on the options which have been set
+        # Call the correct function depending on the options which have been passed
         if self.updateByName:
             updater = update.Updater(self.forceNaive)
             updater.findID(self.passedName)
@@ -151,84 +177,3 @@ class Mathgenealogy:
         if self.updateByID:
             updater = update.Updater(self.forceNaive)
             updater.updateByID(self.passedIDs, self.ancestors, self.descendants)
-
-        
-#    def buildGraph(self):
-#        """
-#        Populate the graph member by grabbing the mathematician
-#        pages and extracting relevant data.
-#        """
-#        leaf_grab_queue = list(self.leaf_ids)
-#        ancestor_grab_queue = []
-#        descendant_grab_queue = []
-#
-#        # Grab "leaf" nodes.
-#        while len(leaf_grab_queue) != 0:
-#            id = leaf_grab_queue.pop()
-#            if not self.graph.hasNode(id):
-#                # Then this information has not yet been grabbed.
-#                grabber = grab.Grabber(id)
-#                if self.verbose:
-#                    print "Grabbing record #%d" % (id)
-#                try:
-#                    [name, institution, year, advisors, descendants] = grabber.extractNodeInformation()
-#                except ValueError:
-#                    # The given id does not exist in the Math Genealogy Project's database.
-#                    raise
-#                self.graph.addNode(name, institution, year, id, advisors, descendants, True)
-#                if self.get_ancestors:
-#                    ancestor_grab_queue += advisors
-#                if self.get_descendants:
-#                    descendant_grab_queue += descendants
-#
-#        # Grab ancestors of leaf nodes.
-#        if self.get_ancestors:
-#            while len(ancestor_grab_queue) != 0:
-#                id = ancestor_grab_queue.pop()
-#                if not self.graph.hasNode(id):
-#                    # Then this information has not yet been grabbed.
-#                    grabber = grab.Grabber(id)
-#                    if self.verbose:
-#                        print "Grabbing record #%d" % (id)
-#                    try:
-#                        [name, institution, year, advisors, descendants] = grabber.extractNodeInformation()
-#                    except ValueError:
-#                        # The given id does not exist in the Math Genealogy Project's database.
-#                        raise
-#                    self.graph.addNode(name, institution, year, id, advisors, descendants)
-#                    ancestor_grab_queue += advisors
-#                        
-#        # Grab descendants of leaf nodes.
-#        if self.get_descendants:
-#            while len(descendant_grab_queue) != 0:
-#                id = descendant_grab_queue.pop()
-#                if not self.graph.hasNode(id):
-#                    # Then this information has not yet been grabbed.
-#                    grabber = grab.Grabber(id)
-#                    if self.verbose:
-#                        print "Grabbing record #%d" % (id)
-#                    try:
-#                        [name, institution, year, advisors, descendants] = grabber.extractNodeInformation()
-#                    except ValueError:
-#                        # The given id does not exist in the Math Genealogy Project's database.
-#                        raise
-#                    self.graph.addNode(name, institution, year, id, advisors, descendants)
-#                    descendant_grab_queue += descendants
-#                    
-#    def generateDotFile(self):
-#        dotfile = self.graph.generateDotFile(self.get_ancestors, self.get_descendants)
-#        if self.write_filename is not None:
-#            outfile = open(self.write_filename, "w")
-#            outfile.write(dotfile)
-#            outfile.close()
-#        else:
-#            print dotfile
-        
-        
-#if __name__ == "__main__":
-#    mgdb = Mathgenealogy()
-#    try:
-#        mgdb.parseInput()
-#    except SyntaxError, e:
-#        print mgdb.parser.get_usage()
-#        print e
