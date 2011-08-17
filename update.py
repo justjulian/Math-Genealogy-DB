@@ -62,10 +62,10 @@ class Updater:
                                     (id INTEGER, title TEXT, university TEXT, year TEXT, \
                                     UNIQUE (id, title, university, year) ON CONFLICT IGNORE)")
                 self.cursor.execute("CREATE TABLE IF NOT EXISTS descendants \
-                                    (id INTEGER, path TEXT \
+                                    (id INTEGER, path TEXT, \
                                     UNIQUE (id, path) ON CONFLICT IGNORE)")
                 self.cursor.execute("CREATE TABLE IF NOT EXISTS ancestors \
-                                    (id INTEGER, path TEXT \
+                                    (id INTEGER, path TEXT, \
                                     UNIQUE (id, path) ON CONFLICT IGNORE)")
  
                 self.connection.commit()
