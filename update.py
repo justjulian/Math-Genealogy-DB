@@ -50,7 +50,7 @@ class Updater:
             try:
                 self.connection = sqlite3.connect("MG-DB")
                 # Use sqlite3.Row to enable direct access to the stored data of the table.
-                self.connection.row_factory = sqlite3.Row
+                self.connection.row_factory = sqlite3.Row    
                 self.cursor = self.connection.cursor()
 
                 self.cursor.execute("CREATE TABLE IF NOT EXISTS mathematician \
@@ -60,7 +60,13 @@ class Updater:
                                     UNIQUE (idAdvisor, idStudent, advisorOrder) ON CONFLICT IGNORE)")
                 self.cursor.execute("CREATE TABLE IF NOT EXISTS dissertation \
                                     (id INTEGER, title TEXT, university TEXT, year TEXT, \
-                                    UNIQUE (id, title) ON CONFLICT IGNORE)")
+                                    UNIQUE (id, title, university, year) ON CONFLICT IGNORE)")
+                self.cursor.execute("CREATE TABLE IF NOT EXISTS descendants \
+                                    (id INTEGER, path TEXT \
+                                    UNIQUE (id, path) ON CONFLICT IGNORE)")
+                self.cursor.execute("CREATE TABLE IF NOT EXISTS ancestors \
+                                    (id INTEGER, path TEXT \
+                                    UNIQUE (id, path) ON CONFLICT IGNORE)")
  
                 self.connection.commit()
     
@@ -109,8 +115,7 @@ class Updater:
         Take the arguments and update all three tables of the local database.
         Replace existing entries.
         """
-        self.cursor.execute("INSERT OR REPLACE INTO mathematician VALUES (?, ?, ?)",  (id, name, numberOfDescendants))
-        self.connection.commit()
+        self.cursor.execute("INSERT INTO mathematician VALUES (?, ?, ?)",  (id, name, numberOfDescendants))
         
         advOrder = 0
         
@@ -125,8 +130,7 @@ class Updater:
                 advID = next(iterAdvisor)
                 
             advOrder += 1
-            self.cursor.execute("INSERT OR REPLACE INTO advised VALUES (?, ?, ?)",  (advID, id, advOrder))
-            self.connection.commit()    
+            self.cursor.execute("INSERT INTO advised VALUES (?, ?, ?)",  (advID, id, advOrder))
             
         iterUni = iter(unis)
         iterYear = iter(years)    
@@ -137,8 +141,9 @@ class Updater:
             uni = next(iterUni)
             year = next(iterYear)
             
-            self.cursor.execute("INSERT OR REPLACE INTO dissertation VALUES (?, ?, ?, ?)",  (id, dissertation, uni, year))
-            self.connection.commit()
+            self.cursor.execute("INSERT INTO dissertation VALUES (?, ?, ?, ?)",  (id, dissertation, uni, year))
+            
+        self.connection.commit()
 
 
     def updateByName(self, id, name, uni, year, advisors, dissertation, numberOfDescendants):
@@ -152,7 +157,7 @@ class Updater:
             self.naiveUpdate(id, name, uni, year, advisors, dissertation, numberOfDescendants)
             
         else:    
-            self.cursor.execute("SELECT id from mathematician WHERE id=?", (id,))
+            self.cursor.execute("SELECT id FROM mathematician WHERE id = ?", (id,))
             tempList = self.cursor.fetchall()
 
             # If the returned list is empty, then the mathematician isn't in the local
@@ -183,6 +188,70 @@ class Updater:
         return [name, uni, year, advisors, students, dissertation, numberOfDescendants]
 
 
+    def updatePath(self, rootID, mode, treeString):
+        """
+        """
+        if mode == "ancestors":
+            self.cursor.execute("INSERT INTO ancestors VALUES (?, ?)",  (rootID, treeString))
+            
+        else:
+            self.cursor.execute("INSERT INTO descendants VALUES (?, ?)",  (rootID, treeString))
+
+
+    def recursiveAncestorsPath(self, advisors, treeString):
+        """
+        """
+        rootID = int(treeString)
+        
+        for advisor in advisors:
+            self.cursor.execute("SELECT * FROM advised WHERE idStudent=?", (advisor,))
+            tempList = self.cursor.fetchall()
+            nextAdvisors = []
+            
+            for row in tempList:
+                nextAdvisors.append(row["idAdvisor"])
+            
+            treeString = str(advisor) + "." + treeString
+
+            if len(nextAdvisors) > 0:
+                self.recursiveAncestorsPath(nextAdvisors, treeString)
+                # We have to delete the last node from the string because we are following another path now
+                treeString = treeString.split(".", 1)[1]
+                
+            else:
+                # If we reach the highest ancestor, then store this string!
+                self.updatePath(rootID, "ancestors", treeString)
+                # We have to delete the last node from the string because we are following another path now
+                treeString = treeString.split(".", 1)[1]
+                
+                
+    def recursiveDescendantsPath(self, students, treeString):
+        """
+        """
+        rootID = int(treeString)
+        
+        for student in students:
+            self.cursor.execute("SELECT * FROM advised WHERE idAdvisor=?", (student,))
+            tempList = self.cursor.fetchall()
+            nextStudents = []
+            
+            for row in tempList:
+                nextStudents.append(row["idStudent"])
+                
+            treeString = treeString + "." + str(student)
+
+            if len(nextStudents) > 0:
+                self.recursiveDescendantsPath(nextStudents, treeString)
+                # We have to delete the last node from the string because we are following another path now
+                treeString = treeString.rsplit(".", 1)[0]
+                
+            else:
+                # If we reach the highest ancestor, then store this string!
+                self.updatePath(rootID, "descendants", treeString)
+                # We have to delete the last node from the string because we are following another path now
+                treeString = treeString.rsplit(".", 1)[0]
+
+
     def recursiveAncestors(self, advisors):
         """
         Take the advisor list and grab them recursively.
@@ -197,7 +266,7 @@ class Updater:
             self.currentAdvisorsGrab.append(advisor)
             
             # Not possible for ancestors as the number of all ancestors isn't stored online.
-            #self.cursor.execute("SELECT id, descendants from mathematician WHERE id=?", (advisor,))
+            #self.cursor.execute("SELECT descendants FROM mathematician WHERE id=?", (advisor,))
             #tempList = self.cursor.fetchall()
             
             #if not self.naiveMode and len(tempList) == 1 and tempList[0]["descendants"] == numberOfDescendants:
@@ -229,7 +298,7 @@ class Updater:
             # Should be: Compare online stored number of descendants with calculated number of descendants
             # given by the tables. First need smart way to calculate this number.
             # If numbers are equal, no mathematician has been added and no update is needed.
-            self.cursor.execute("SELECT descendants from mathematician WHERE id=?", (student,))
+            self.cursor.execute("SELECT descendants FROM mathematician WHERE id=?", (student,))
             tempList = self.cursor.fetchall()
             
             if not self.naiveMode and len(tempList) == 1 and tempList[0]["descendants"] == numberOfDescendants:
@@ -258,10 +327,16 @@ class Updater:
             self.naiveUpdate(id, name, uni, year, advisors, dissertation, numberOfDescendants)
             
             if ancestors:
+                print("Updating nodes:")
                 self.recursiveAncestors(advisors)
+                print("Updating path:")
+                self.recursiveAncestorsPath(advisors, str(id))
                     
             if descendants:
+                print("Updating nodes:")
                 self.recursiveDescendants(students)
+                print("Updating path:")
+                self.recursiveDescendantsPath(students, str(id))
 
 
 #self.cursor.execute("SELECT name from mathematician")
