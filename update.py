@@ -39,6 +39,7 @@ class Updater:
         self.naiveMode = naive
         self.currentAdvisorsGrab = []
         self.currentStudentsGrab = []
+        self.rootID = None
 
 
     def connectToDatabase(self):
@@ -188,14 +189,14 @@ class Updater:
         return [name, uni, year, advisors, students, dissertation, numberOfDescendants]
 
 
-    def updatePath(self, rootID, mode, treeString):
+    def updatePath(self, mode, treeString):
         """
         """
         if mode == "ancestors":
-            self.cursor.execute("INSERT INTO ancestors VALUES (?, ?)",  (rootID, treeString))
+            self.cursor.execute("INSERT INTO ancestors VALUES (?, ?)",  (self.rootID, treeString))
             
         else:
-            self.cursor.execute("INSERT INTO descendants VALUES (?, ?)",  (rootID, treeString))
+            self.cursor.execute("INSERT INTO descendants VALUES (?, ?)",  (self.rootID, treeString))
 
 
     def recursiveAncestorsPath(self, advisors, treeString):
@@ -220,7 +221,7 @@ class Updater:
                 
             else:
                 # If we reach the highest ancestor, then store this string!
-                self.updatePath(rootID, "ancestors", treeString)
+                self.updatePath("ancestors", treeString)
                 # We have to delete the last node from the string because we are following another path now
                 treeString = treeString.split(".", 1)[1]
                 
@@ -247,7 +248,7 @@ class Updater:
                 
             else:
                 # If we reach the highest ancestor, then store this string!
-                self.updatePath(rootID, "descendants", treeString)
+                self.updatePath("descendants", treeString)
                 # We have to delete the last node from the string because we are following another path now
                 treeString = treeString.rsplit(".", 1)[0]
 
@@ -330,12 +331,14 @@ class Updater:
                 print("Updating nodes:")
                 self.recursiveAncestors(advisors)
                 print("Updating path:")
+                self.rootID = id
                 self.recursiveAncestorsPath(advisors, str(id))
                     
             if descendants:
                 print("Updating nodes:")
                 self.recursiveDescendants(students)
                 print("Updating path:")
+                self.rootID = id
                 self.recursiveDescendantsPath(students, str(id))
 
 
