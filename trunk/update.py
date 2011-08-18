@@ -63,11 +63,11 @@ class Updater:
                                     (id INTEGER, title TEXT, university TEXT, year TEXT, \
                                     UNIQUE (id, title, university, year) ON CONFLICT IGNORE)")
                 self.cursor.execute("CREATE TABLE IF NOT EXISTS descendants \
-                                    (id INTEGER, path TEXT, \
-                                    UNIQUE (id, path) ON CONFLICT IGNORE)")
+                                    (id INTEGER, pathFromRoot TEXT, \
+                                    UNIQUE (id, pathFromRoot) ON CONFLICT IGNORE)")
                 self.cursor.execute("CREATE TABLE IF NOT EXISTS ancestors \
-                                    (id INTEGER, path TEXT, \
-                                    UNIQUE (id, path) ON CONFLICT IGNORE)")
+                                    (id INTEGER, pathToRoot TEXT, \
+                                    UNIQUE (id, pathToRoot) ON CONFLICT IGNORE)")
  
                 self.connection.commit()
     
@@ -192,6 +192,8 @@ class Updater:
     def updatePath(self, mode, treeString):
         """
         """
+        print(treeString)
+        
         if mode == "ancestors":
             self.cursor.execute("INSERT INTO ancestors VALUES (?, ?)",  (self.rootID, treeString))
             
@@ -202,8 +204,6 @@ class Updater:
     def recursiveAncestorsPath(self, advisors, treeString):
         """
         """
-        rootID = int(treeString)
-        
         for advisor in advisors:
             self.cursor.execute("SELECT * FROM advised WHERE idStudent=?", (advisor,))
             tempList = self.cursor.fetchall()
@@ -229,8 +229,6 @@ class Updater:
     def recursiveDescendantsPath(self, students, treeString):
         """
         """
-        rootID = int(treeString)
-        
         for student in students:
             self.cursor.execute("SELECT * FROM advised WHERE idAdvisor=?", (student,))
             tempList = self.cursor.fetchall()
@@ -333,6 +331,7 @@ class Updater:
                 print("Updating path:")
                 self.rootID = id
                 self.recursiveAncestorsPath(advisors, str(id))
+                self.connection.commit()
                     
             if descendants:
                 print("Updating nodes:")
@@ -340,6 +339,7 @@ class Updater:
                 print("Updating path:")
                 self.rootID = id
                 self.recursiveDescendantsPath(students, str(id))
+                self.connection.commit()
 
 
 #self.cursor.execute("SELECT name from mathematician")
