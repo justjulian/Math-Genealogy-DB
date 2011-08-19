@@ -50,6 +50,7 @@ class Updater:
         if self.connection == None:
             try:
                 self.connection = sqlite3.connect("MG-DB")
+                
                 # Use sqlite3.Row to enable direct access to the stored data of the table.
                 self.connection.row_factory = sqlite3.Row    
                 self.cursor = self.connection.cursor()
@@ -79,16 +80,20 @@ class Updater:
     def findID(self, lastName):
         """
         Find the corresponding ID of a mathematician listed in the
-        Mathematics Genealogy Project. This ID is needed to run Update-by-ID.
+        Mathematics Genealogy Project. This ID is needed to run in Update-by-ID.
         """
+        # Get the raw data of this site. Return an object of class 'http.client.HTTPResponse'
         page = urllib.request.urlopen("http://genealogy.math.ndsu.nodak.edu/query-prep.php", \
                                       urllib.parse.urlencode({"family_name":lastName}).encode())
+        # Read the raw data and return an object of class 'bytes' (html-code)
         pagestr = page.read()
+        # Convert bytes-string to readable UTF-8 html-code of class 'str'
         pagestr = pagestr.decode("utf-8")
 
-        # Split the page string at newline characters.
+        # Split the page string at newline characters to get single lines.
         psarray = pagestr.split("\n")
 
+        # Iterate through every line of the html-code.
         for line in psarray:
             if 'a href=\"id.php?id=' in line:
                 # Store if there are mathematicians with that entered last name.
@@ -113,13 +118,15 @@ class Updater:
 
     def naiveUpdate(self, id, name, unis, years, advisors, dissertations, numberOfDescendants):
         """
-        Take the arguments and update all three tables of the local database.
-        Replace existing entries.
+        Take the arguments and update or create the tables mathematicians, advised and dissertation
+        of the local database.
+        Replace existing mathematician.
         """
         self.cursor.execute("INSERT INTO mathematician VALUES (?, ?, ?)",  (id, name, numberOfDescendants))
         
         advOrder = 0
         
+        # Create iterator to be able to use "advID = next(iterAdvisor)".
         iterAdvisor = iter(advisors)
         
         for advID in iterAdvisor:
@@ -132,7 +139,8 @@ class Updater:
                 
             advOrder += 1
             self.cursor.execute("INSERT INTO advised VALUES (?, ?, ?)",  (advID, id, advOrder))
-            
+        
+        # Create iterators again.    
         iterUni = iter(unis)
         iterYear = iter(years)    
         
@@ -149,22 +157,22 @@ class Updater:
 
     def updateByName(self, id, name, uni, year, advisors, dissertation, numberOfDescendants):
         """
-        Run naive update if naive mode is set.
-        Check weather the entry already exists in the local database, if naive mode wasn't set.
+        Update or replace existing entries, depending on the "naive-mode".
         """
         self.connectToDatabase()
         
         if self.naiveMode:
+            # Replace existing mathematician, delete the corresponding entries in the other tables
+            # and store the new data.
+            self.cursor.execute("DELETE FROM advised WHERE idStudent=?", (id,))
+            self.cursor.execute("DELETE FROM dissertation WHERE id=?", (id,))
+            self.connection.commit()
+            
             self.naiveUpdate(id, name, uni, year, advisors, dissertation, numberOfDescendants)
             
-        else:    
-            self.cursor.execute("SELECT id FROM mathematician WHERE id = ?", (id,))
-            tempList = self.cursor.fetchall()
-
-            # If the returned list is empty, then the mathematician isn't in the local
-            # database and it need to be updated.
-            if len(tempList) == 0:
-                self.naiveUpdate(id, name, uni, year, advisors, dissertation, numberOfDescendants)
+        else:
+            # Replace existing mathematician and update the other tables but don't delete anything.
+            self.naiveUpdate(id, name, uni, year, advisors, dissertation, numberOfDescendants)
 
 
     def grabNode(self, id):
@@ -191,6 +199,7 @@ class Updater:
 
     def updatePath(self, mode, treeString):
         """
+        Create new entries in the tables ancestors and descendants.
         """
         print(treeString)
         
@@ -203,9 +212,12 @@ class Updater:
 
     def recursiveAncestorsPath(self, advisors, treeString):
         """
+        Create all ancestors paths for the requested ID. Same IDs will be grabbed several times
+        to ensure that all paths will be found.
+        The paths will be created out of the advised-table. So, this part doesn't need online connectivity.
         """
         for advisor in advisors:
-            self.cursor.execute("SELECT * FROM advised WHERE idStudent=?", (advisor,))
+            self.cursor.execute("SELECT idAdvisor FROM advised WHERE idStudent=?", (advisor,))
             tempList = self.cursor.fetchall()
             nextAdvisors = []
             
@@ -228,9 +240,12 @@ class Updater:
                 
     def recursiveDescendantsPath(self, students, treeString):
         """
+        Create all descendants paths for the requested ID. Same IDs will be grabbed several times
+        to ensure that all paths will be found.
+        The paths will be created out of the advised-table. So, this part doesn't need online connectivity.
         """
         for student in students:
-            self.cursor.execute("SELECT * FROM advised WHERE idAdvisor=?", (student,))
+            self.cursor.execute("SELECT idStudent FROM advised WHERE idAdvisor=?", (student,))
             tempList = self.cursor.fetchall()
             nextStudents = []
             
@@ -264,12 +279,7 @@ class Updater:
             [name, uni, year, nextAdvisors, nextStudents, dissertation, numberOfDescendants] = self.grabNode(advisor)
             self.currentAdvisorsGrab.append(advisor)
             
-            # Not possible for ancestors as the number of all ancestors isn't stored online.
-            #self.cursor.execute("SELECT descendants FROM mathematician WHERE id=?", (advisor,))
-            #tempList = self.cursor.fetchall()
-            
-            #if not self.naiveMode and len(tempList) == 1 and tempList[0]["descendants"] == numberOfDescendants:
-            #    return
+            # Smart update not possible for ancestors as the number of all ancestors isn't stored online.
             
             self.naiveUpdate(advisor, name, uni, year, nextAdvisors, dissertation, numberOfDescendants)
             ungrabbedAdvisors = []
@@ -317,11 +327,18 @@ class Updater:
 
     def updateByID(self, ids, ancestors, descendants):
         """
-        Grab the given ID(s) and grab their ancestors and/or descendants.
+        Grab the given ID(s) and grab their ancestors and/or descendants and update their paths.
         """
         self.connectToDatabase()
         
         for id in ids:
+            if self.naiveMode:
+                self.cursor.execute("DELETE FROM advised WHERE idStudent=?", (id,))
+                self.cursor.execute("DELETE FROM dissertation WHERE id=?", (id,))
+                self.cursor.execute("DELETE FROM ancestors WHERE id=?", (id,))
+                self.cursor.execute("DELETE FROM descendants WHERE id=?", (id,))
+                self.connection.commit()
+            
             [name, uni, year, advisors, students, dissertation, numberOfDescendants] = self.grabNode(id)
             self.naiveUpdate(id, name, uni, year, advisors, dissertation, numberOfDescendants)
             
@@ -340,8 +357,3 @@ class Updater:
                 self.rootID = id
                 self.recursiveDescendantsPath(students, str(id))
                 self.connection.commit()
-
-
-#self.cursor.execute("SELECT name from mathematician")
-#for row in self.cursor:
-#    print row
