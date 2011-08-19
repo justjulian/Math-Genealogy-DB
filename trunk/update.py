@@ -335,8 +335,13 @@ class Updater:
             if self.naiveMode:
                 self.cursor.execute("DELETE FROM advised WHERE idStudent=?", (id,))
                 self.cursor.execute("DELETE FROM dissertation WHERE id=?", (id,))
-                self.cursor.execute("DELETE FROM ancestors WHERE id=?", (id,))
-                self.cursor.execute("DELETE FROM descendants WHERE id=?", (id,))
+                
+                if ancestors:
+                    self.cursor.execute("DELETE FROM ancestors WHERE id=?", (id,))
+                
+                if descendants:
+                    self.cursor.execute("DELETE FROM descendants WHERE id=?", (id,))
+                
                 self.connection.commit()
             
             [name, uni, year, advisors, students, dissertation, numberOfDescendants] = self.grabNode(id)
