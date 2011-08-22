@@ -26,6 +26,7 @@
 from optparse import OptionParser
 import string
 import update
+import search
 
 
 
@@ -177,3 +178,7 @@ class Mathgenealogy:
         if self.updateByID:
             updater = update.Updater(self.forceNaive)
             updater.updateByID(self.passedIDs, self.ancestors, self.descendants)
+            
+        if self.lca:
+            searcher = search.Searcher()
+            searcher.lca(self.passedIDs)
