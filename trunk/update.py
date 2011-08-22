@@ -20,8 +20,8 @@
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-import sqlite3
 import grab
+import databaseConnection
 import urllib.request, urllib.parse, urllib.error
 
 
@@ -34,47 +34,14 @@ class Updater:
     def __init__(self, naive):
         self.foundID = False
         self.foundIDs = []
-        self.connection = None
-        self.cursor = None
         self.naiveMode = naive
         self.currentAdvisorsGrab = []
         self.currentStudentsGrab = []
-        self.rootID = None
-
-
-    def connectToDatabase(self):
-        """
-        Connect to the local database if not already connected.
-        Create local database if it not already exists.
-        """
-        if self.connection == None:
-            try:
-                self.connection = sqlite3.connect("MG-DB")
-                
-                # Use sqlite3.Row to enable direct access to the stored data of the table.
-                self.connection.row_factory = sqlite3.Row    
-                self.cursor = self.connection.cursor()
-
-                self.cursor.execute("CREATE TABLE IF NOT EXISTS mathematician \
-                                    (id INTEGER PRIMARY KEY ASC ON CONFLICT REPLACE, name TEXT, descendants INTEGER)")    
-                self.cursor.execute("CREATE TABLE IF NOT EXISTS advised \
-                                    (idAdvisor INTEGER, idStudent INTEGER, advisorOrder INTEGER, \
-                                    UNIQUE (idAdvisor, idStudent, advisorOrder) ON CONFLICT IGNORE)")
-                self.cursor.execute("CREATE TABLE IF NOT EXISTS dissertation \
-                                    (id INTEGER, title TEXT, university TEXT, year TEXT, \
-                                    UNIQUE (id, title, university, year) ON CONFLICT IGNORE)")
-                self.cursor.execute("CREATE TABLE IF NOT EXISTS descendants \
-                                    (id INTEGER, pathFromRoot TEXT, \
-                                    UNIQUE (id, pathFromRoot) ON CONFLICT IGNORE)")
-                self.cursor.execute("CREATE TABLE IF NOT EXISTS ancestors \
-                                    (id INTEGER, pathToRoot TEXT, \
-                                    UNIQUE (id, pathToRoot) ON CONFLICT IGNORE)")
- 
-                self.connection.commit()
-    
-            except sqlite3.Error:
-                print("Can neither create local database nor connect with an existing one!")
-                raise
+        
+        databaseConnector = databaseConnection.DatabaseConnector()
+        connector = databaseConnector.connectToSQLite()
+        self.connection = connector[0]
+        self.cursor = connector[1]
 
 
     def findID(self, lastName):
@@ -114,6 +81,9 @@ class Updater:
             print("There is either no mathematician in the online-database with that entered last name or there are too many. \
                    You can check http://genealogy.math.ndsu.nodak.edu/search.php though and try to find the desired mathematician \
                    by using more search options. You can then use the ID of this mathematician to run Update-by-ID.")
+            
+        self.cursor.close()
+        self.connection.close()
 
 
     def naiveUpdate(self, id, name, unis, years, advisors, dissertations, numberOfDescendants):
@@ -122,7 +92,7 @@ class Updater:
         of the local database.
         Replace existing mathematician.
         """
-        self.cursor.execute("INSERT INTO mathematician VALUES (?, ?, ?)",  (id, name, numberOfDescendants))
+        self.cursor.execute("INSERT INTO person VALUES (?, ?, ?)",  (id, name, numberOfDescendants))
         
         advOrder = 0
         
@@ -138,7 +108,7 @@ class Updater:
                 advID = next(iterAdvisor)
                 
             advOrder += 1
-            self.cursor.execute("INSERT INTO advised VALUES (?, ?, ?)",  (advID, id, advOrder))
+            self.cursor.execute("INSERT INTO advised VALUES (?, ?, ?)",  (id, advOrder, advID))
         
         # Create iterators again.    
         iterUni = iter(unis)
@@ -159,15 +129,10 @@ class Updater:
         """
         Update or replace existing entries, depending on the "naive-mode".
         """
-        self.connectToDatabase()
-        
         if self.naiveMode:
             # Replace existing mathematician, delete the corresponding entries in the other tables
             # and store the new data.
-            self.cursor.execute("DELETE FROM advised WHERE idStudent=?", (id,))
-            self.cursor.execute("DELETE FROM dissertation WHERE id=?", (id,))
-            self.connection.commit()
-            
+            self.deleteRows(id)
             self.naiveUpdate(id, name, uni, year, advisors, dissertation, numberOfDescendants)
             
         else:
@@ -186,7 +151,7 @@ class Updater:
             # foundID indicates that the program runs in Update-by-Name mode. Following output
             # is disturbing in this mode.
             if not self.foundID:
-                print("Grabbing record #{}".format(id))
+                print("Grabbing record #", id)
                 
             [name, uni, year, advisors, students, dissertation, numberOfDescendants] = grabber.extractNodeInformation()
 
@@ -195,75 +160,6 @@ class Updater:
             raise
         
         return [name, uni, year, advisors, students, dissertation, numberOfDescendants]
-
-
-    def updatePath(self, mode, treeString):
-        """
-        Create new entries in the tables ancestors and descendants.
-        """
-        print(treeString)
-        
-        if mode == "ancestors":
-            self.cursor.execute("INSERT INTO ancestors VALUES (?, ?)",  (self.rootID, treeString))
-            
-        else:
-            self.cursor.execute("INSERT INTO descendants VALUES (?, ?)",  (self.rootID, treeString))
-
-
-    def recursiveAncestorsPath(self, advisors, treeString):
-        """
-        Create all ancestors paths for the requested ID. Same IDs will be grabbed several times
-        to ensure that all paths will be found.
-        The paths will be created out of the advised-table. So, this part doesn't need online connectivity.
-        """
-        for advisor in advisors:
-            self.cursor.execute("SELECT idAdvisor FROM advised WHERE idStudent=?", (advisor,))
-            tempList = self.cursor.fetchall()
-            nextAdvisors = []
-            
-            for row in tempList:
-                nextAdvisors.append(row["idAdvisor"])
-            
-            treeString = str(advisor) + "." + treeString
-
-            if len(nextAdvisors) > 0:
-                self.recursiveAncestorsPath(nextAdvisors, treeString)
-                # We have to delete the last node from the string because we are following another path now
-                treeString = treeString.split(".", 1)[1]
-                
-            else:
-                # If we reach the highest ancestor, then store this string!
-                self.updatePath("ancestors", treeString)
-                # We have to delete the last node from the string because we are following another path now
-                treeString = treeString.split(".", 1)[1]
-                
-                
-    def recursiveDescendantsPath(self, students, treeString):
-        """
-        Create all descendants paths for the requested ID. Same IDs will be grabbed several times
-        to ensure that all paths will be found.
-        The paths will be created out of the advised-table. So, this part doesn't need online connectivity.
-        """
-        for student in students:
-            self.cursor.execute("SELECT idStudent FROM advised WHERE idAdvisor=?", (student,))
-            tempList = self.cursor.fetchall()
-            nextStudents = []
-            
-            for row in tempList:
-                nextStudents.append(row["idStudent"])
-                
-            treeString = treeString + "." + str(student)
-
-            if len(nextStudents) > 0:
-                self.recursiveDescendantsPath(nextStudents, treeString)
-                # We have to delete the last node from the string because we are following another path now
-                treeString = treeString.rsplit(".", 1)[0]
-                
-            else:
-                # If we reach the highest ancestor, then store this string!
-                self.updatePath("descendants", treeString)
-                # We have to delete the last node from the string because we are following another path now
-                treeString = treeString.rsplit(".", 1)[0]
 
 
     def recursiveAncestors(self, advisors):
@@ -280,6 +176,9 @@ class Updater:
             self.currentAdvisorsGrab.append(advisor)
             
             # Smart update not possible for ancestors as the number of all ancestors isn't stored online.
+            
+            if self.naiveMode:
+                self.deleteRows(advisor)
             
             self.naiveUpdate(advisor, name, uni, year, nextAdvisors, dissertation, numberOfDescendants)
             ungrabbedAdvisors = []
@@ -307,12 +206,15 @@ class Updater:
             # Should be: Compare online stored number of descendants with calculated number of descendants
             # given by the tables. First need smart way to calculate this number.
             # If numbers are equal, no mathematician has been added and no update is needed.
-            self.cursor.execute("SELECT descendants FROM mathematician WHERE id=?", (student,))
+            self.cursor.execute("SELECT descendants FROM person WHERE pid=?", (student,))
             tempList = self.cursor.fetchall()
             
             if not self.naiveMode and len(tempList) == 1 and tempList[0]["descendants"] == numberOfDescendants:
                 return
             # -----------------------------------------------------------------------------------------------------
+            
+            if self.naiveMode:
+                self.deleteRows(student)
             
             self.naiveUpdate(student, name, uni, year, nextAdvisors, dissertation, numberOfDescendants)
             ungrabbedStudents = []
@@ -329,36 +231,26 @@ class Updater:
         """
         Grab the given ID(s) and grab their ancestors and/or descendants and update their paths.
         """
-        self.connectToDatabase()
-        
         for id in ids:
             if self.naiveMode:
-                self.cursor.execute("DELETE FROM advised WHERE idStudent=?", (id,))
-                self.cursor.execute("DELETE FROM dissertation WHERE id=?", (id,))
-                
-                if ancestors:
-                    self.cursor.execute("DELETE FROM ancestors WHERE id=?", (id,))
-                
-                if descendants:
-                    self.cursor.execute("DELETE FROM descendants WHERE id=?", (id,))
-                
-                self.connection.commit()
+                self.deleteRows(id)
             
             [name, uni, year, advisors, students, dissertation, numberOfDescendants] = self.grabNode(id)
             self.naiveUpdate(id, name, uni, year, advisors, dissertation, numberOfDescendants)
             
             if ancestors:
-                print("Updating nodes:")
                 self.recursiveAncestors(advisors)
-                print("Updating path:")
-                self.rootID = id
-                self.recursiveAncestorsPath(advisors, str(id))
-                self.connection.commit()
                     
             if descendants:
-                print("Updating nodes:")
                 self.recursiveDescendants(students)
-                print("Updating path:")
-                self.rootID = id
-                self.recursiveDescendantsPath(students, str(id))
-                self.connection.commit()
+                
+        self.cursor.close()
+        self.connection.close()
+        
+        
+    def deleteRows(self, id):
+        self.cursor.execute("DELETE FROM person WHERE pid=?", (id,))
+        self.cursor.execute("DELETE FROM advised WHERE student=?", (id,))
+        self.cursor.execute("DELETE FROM dissertation WHERE did=?", (id,))
+                
+        self.connection.commit()
