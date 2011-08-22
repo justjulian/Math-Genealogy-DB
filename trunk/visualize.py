@@ -20,26 +20,23 @@
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-import sqlite3
+import databaseConnection
 
 
 
-class Visualize:
+class Visualizer:
     """
     Class for generating DOT-files to answer the search queries.
     """
     def __init__(self):
-        try:
-            self.connection = sqlite3.connect("MG-DB")
-            self.connection.row_factory = sqlite3.Row
-            self.cursor = self.connection.cursor()
-    
-        except sqlite3.Error:
-            print("Can't connect with local database. Please run update first!")
-            raise
+        databaseConnector = databaseConnection.DatabaseConnector()
+        connector = databaseConnector.connectToSQLite()
+        self.connection = connector[0]
+        self.cursor = connector[1]
         
         
     def generateDotFile(self, printIDs):
+        printedIDs = []
         edges = ""
         dotFile = ""
         dotFile += """digraph genealogy {
@@ -48,36 +45,45 @@ class Visualize:
     edge [style=bold];\n\n"""
     
         for id in printIDs:
-            # Get name
-            self.cursor.execute("SELECT name from mathematician WHERE id=?", (id,))
-            row = self.cursor.fetchone()
-            name = row["name"]
+            id = int(id)
             
-            # Get dissertation, university and year
-            # Only information of one dissertation will be printed
-            self.cursor.execute("SELECT university, year from dissertation WHERE id=?", (id,))
-            row = self.cursor.fetchone()
-            uni = row["university"]
-            year = row["year"]
+            if id not in printedIDs:
+                printedIDs.append(id)
+            
+                # Get name
+                self.cursor.execute("SELECT name FROM person WHERE pid=?", (id,))
+                row = self.cursor.fetchone()
+                name = row["name"]
+            
+                # Get dissertation, university and year
+                # Only information of one dissertation will be printed
+                self.cursor.execute("SELECT university, year FROM dissertation WHERE did=?", (id,))
+                row = self.cursor.fetchone()
+                uni = row["university"]
+                year = row["year"]
     
-            # Merge everything to a string and add to DOT-file
-            nodeStr = "    {} [label=\"{} \n{} {}\"];".format(id, name, uni, year)
-            dotFile += nodeStr
+                # Merge everything to a string and add to DOT-file
+                nodeStr = "    {} [label=\"{} \\n{} {}\"];".format(id, name, uni, year)
+                dotFile += nodeStr
         
-            # Get relationship and store it to add it at the end of the
-            # DOT-file when exiting this loop.
-            self.cursor.execute("SELECT idStudent from advised WHERE idAdvisor=?", (id,))
-            students = self.cursor.fetchall()
+                # Get relationship and store it to add it at the end of the
+                # DOT-file when exiting this loop.
+                self.cursor.execute("SELECT student FROM advised WHERE advisor=?", (id,))
+                students = self.cursor.fetchall()
             
-            for student in students:
-                # Merge everything to a string
-                edgeStr = "\n    {} -> {};".format(id, student["idStudent"])
-                edges += edgeStr
+                for student in students:
+                    if str(student["student"]) in printIDs:
+                        # Merge everything to a string
+                        edgeStr = "\n    {} -> {};".format(id, student["student"])
+                        edges += edgeStr
             
-            dotFile += "\n"
+                dotFile += "\n"
 
         # Now print the connections between the nodes.
         dotFile += edges
         dotFile += "\n}\n"
         
-        return dotfile
+        self.cursor.close()
+        self.connection.close()
+        
+        return dotFile
