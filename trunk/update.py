@@ -95,24 +95,12 @@ class Updater:
         self.cursor.execute("INSERT INTO person VALUES (?, ?, ?)",  (id, name, numberOfDescendants))
         
         advOrder = 0
+        counter = 0
         
-        # Create iterator to be able to use "advID = next(iterAdvisor)".
-        iterAdvisor = iter(advisors)
-        
-        for advID in iterAdvisor:
-            # If advisors are separated by 0, then a new set of advisors starts
-            # which means, that there is also another dissertation.
-            # Hence, the order must be reseted and the next advisors must be grabbed.
-            if advID == 0:
-                advOrder = 0
-                advID = next(iterAdvisor)
-                
-            advOrder += 1
-            self.cursor.execute("INSERT INTO advised VALUES (?, ?, ?)",  (id, advOrder, advID))
-        
-        # Create iterators again.    
+        # Create iterators.
+        iterAdvisor = iter(advisors) 
         iterUni = iter(unis)
-        iterYear = iter(years)    
+        iterYear = iter(years)
         
         # Lists dissertation, uni and year have the same length. The items are either set or None.
         # Hence, iterating one of them is enough to avoid range errors.    
@@ -120,7 +108,20 @@ class Updater:
             uni = next(iterUni)
             year = next(iterYear)
             
-            self.cursor.execute("INSERT INTO dissertation VALUES (?, ?, ?, ?)",  (id, dissertation, uni, year))
+            counter += 1
+            
+            self.cursor.execute("INSERT INTO dissertation VALUES (?, ?, ?, ?, ?)",  (id, counter, dissertation, uni, year))
+            
+            for advID in iterAdvisor:
+                # If advisors are separated by 0, then a new set of advisors starts
+                # which means, that there is also another dissertation.
+                # Hence, the order must be reseted and the next advisors must be grabbed.
+                if advID == 0:
+                    advOrder = 0
+                    break
+                
+                advOrder += 1
+                self.cursor.execute("INSERT INTO advised VALUES (?, ?, ?, ?)",  (id, counter, advOrder, advID))
             
         self.connection.commit()
 
