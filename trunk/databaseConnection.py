@@ -49,11 +49,11 @@ class DatabaseConnector:
                 self.cursor.execute("CREATE TABLE IF NOT EXISTS person \
                                     (pid INTEGER PRIMARY KEY ASC ON CONFLICT IGNORE, name TEXT, descendants INTEGER)")    
                 self.cursor.execute("CREATE TABLE IF NOT EXISTS advised \
-                                    (student INTEGER, advisorOrder INTEGER, advisor INTEGER, \
-                                    UNIQUE (student, advisorOrder, advisor) ON CONFLICT IGNORE)")
+                                    (student INTEGER, dissertationNumber INTEGER, advisorOrder INTEGER, advisor INTEGER, \
+                                    UNIQUE (student, dissertationNumber, advisor) ON CONFLICT IGNORE)")
                 self.cursor.execute("CREATE TABLE IF NOT EXISTS dissertation \
-                                    (did INTEGER, title TEXT, university TEXT, year TEXT, \
-                                    UNIQUE (did, title, university, year) ON CONFLICT IGNORE)")
+                                    (did INTEGER, number INTEGER, title TEXT, university TEXT, year TEXT, \
+                                    UNIQUE (did, number) ON CONFLICT IGNORE)")
  
                 self.connection.commit()
     
