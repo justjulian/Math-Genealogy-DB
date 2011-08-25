@@ -157,9 +157,9 @@ class Mathgenealogy:
             if len(args) != 1:
                 raise SyntaxError("%s: error: enter only one ID" % (self.parser.get_prog_name()))
             
-        if self.sp:
+        if self.sp or self.lca:
             if len(args) < 2:
-                raise SyntaxError("%s: error: you have to enter two IDs at least to search for a path" % (self.parser.get_prog_name()))
+                raise SyntaxError("%s: error: you have to enter at least two IDs to execute this search method" % (self.parser.get_prog_name()))
         
         # If no error occurred, then the options and arguments are correct. Hence, we can continue:
         # Read the arguments
@@ -180,5 +180,5 @@ class Mathgenealogy:
             updater.updateByID(self.passedIDs, self.ancestors, self.descendants)
             
         if self.lca:
-            searcher = search.Searcher()
+            searcher = search.Searcher(self.writeFilename)
             searcher.lca(self.passedIDs)
