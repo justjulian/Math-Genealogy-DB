@@ -28,8 +28,9 @@ import databaseConnection
 class Searcher:
     """
     """
-    def __init__(self):
+    def __init__(self, filename):
         self.paths = []
+        self.filename = filename
         
         databaseConnector = databaseConnection.DatabaseConnector()
         connector = databaseConnector.connectToSQLite()
@@ -157,9 +158,13 @@ class Searcher:
             visualizer = visualize.Visualizer()
             dotFile = visualizer.generateDotFile(lcaIDs)
             
-            lcaQuery = open("lcaQuery.dot", "w")
-            print(dotFile, file=lcaQuery)
-            lcaQuery.close()
+            if self.filename is not None:
+                lcaQuery = open(self.filename + ".dot", "w")
+                print(dotFile, file=lcaQuery)
+                lcaQuery.close()
+                
+            else:
+                print(dotFile)
         
         else:
             print("There is no LCA!")
