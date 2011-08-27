@@ -132,7 +132,8 @@ class Grabber:
                         # Extract link to advisor page.
                         advisor_id = int(advisorLine.split('a href=\"id.php?id=')[1].split('\">')[0])
                         self.advisors.append(advisor_id)
-                        advisorLine = advisorLine.split(str(advisor_id))[1]
+                        # Split at advisor_id is unstable as advisorLine contains also numbers.
+                        advisorLine = advisorLine.split("id=" + str(advisor_id))[1]
                     else:
                         # We are done. Adjust string to break the loop.
                         # (Without this records with no advisor enter an infinite loop.)
