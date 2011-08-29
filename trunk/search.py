@@ -30,6 +30,7 @@ class Searcher:
     """
     def __init__(self, filename):
         self.paths = []
+        self.lcaPath = []
         self.filename = filename
         
         databaseConnector = databaseConnection.DatabaseConnector()
@@ -38,119 +39,59 @@ class Searcher:
         self.cursor = connector[1]
         
         
-    def lca(self, ids):
+    def generatePathOf(self, id):
+        print("Updating path of #", id)
         allPaths = []
-        lcaList = []
+            
+        self.cursor.execute("SELECT advisor FROM advised WHERE student=?", (id,))
+        tempList = self.cursor.fetchall()
+        nextAdvisors = []
+            
+        for row in tempList:
+            nextAdvisors.append(row["advisor"])
+            
+        if len(nextAdvisors) > 0:
+            self.recursiveAncestorsPath(nextAdvisors, str(id))
+            
+        else:
+            self.paths.append(str(id) + ".")
+            print(str(id) + ".")
+            
+        allPaths = self.paths
+        self.paths = []
         
-        for id in ids:
-            print("Updating path of #", id)
-            
-            self.cursor.execute("SELECT advisor FROM advised WHERE student=?", (id,))
-            tempList = self.cursor.fetchall()
-            nextAdvisors = []
-            
-            for row in tempList:
-                nextAdvisors.append(row["advisor"])
-            
-            if len(nextAdvisors) > 0:
-                self.recursiveAncestorsPath(nextAdvisors, str(id))
-            
-                for row in self.paths:
-                    row = [id] + [row]
-                    allPaths.append(row)
-
-            self.paths = []
-            
+        return allPaths
+        
+        
+    def lca(self, ids):
+        id1 = ids[0]
         
         for i in range(len(ids)-1):
-            id1 = ids[i]
-            id2 = ids[i+1]
+            if id1 == None:
+                break
             
-            maxPrefix = 0
+            else:
+                id1 = self.recursiveLCA(id1, ids[i+1])
             
-            row1Iter = iter(allPaths)
-            firstRunLoop1 = True
-            
-            for row1 in row1Iter:
-                if firstRunLoop1:
-                    firstRunLoop1 = False
-                    
-                    while not id1 == row1[0]:
-                        row1 = next(row1Iter)
-                        
-                if not id1 == row1[0]:
-                    break
-                
-                firstRunLoop2 = True
-                row2Iter = iter(allPaths)    
-                
-                splitPath1 = row1[1].split('.')
-                
-                for row2 in row2Iter:
-                    if firstRunLoop2:
-                        firstRunLoop2 = False
-                        
-                        while not id2 == row2[0]:
-                            row2 = next(row2Iter)
-                            
-                    if not id2 == row2[0]:
-                        break
-                    
-                    prefix = 0
-                    splitPath2 = row2[1].split('.')
-                    
-                    if len(splitPath1) >= len(splitPath2):
-                        longPathIter = iter(splitPath1)
-                        shortPathIter = iter(splitPath2)
-                        
-                    else:
-                        longPathIter = iter(splitPath2)
-                        shortPathIter = iter(splitPath1)
-                    
-                    for singlePathID1 in shortPathIter:
-                        singlePathID2 = next(longPathIter)
-                        
-                        prefix += 1
-                        
-                        # DO NOT combine these two if statements to one
-                        # because we only want to run the else part if the
-                        # first condition isn't True.
-                        if singlePathID1 == singlePathID2:
-                            if prefix > maxPrefix:
-                                lca = int(singlePathID1)
-                                lcaPath1 = row1[1]
-                                lcaPath2 = row2[1]
-                                maxPrefix = prefix
-                            
-                        else:
-                            break
-                    
-            lcaList.append(lca)
-        
-        
-        if len(lcaList) == 0:
-            finalLCA = None
-        
-        elif len(lcaList) == 1:
-            finalLCA = lcaList[0]
+        if id1 == None:
+            print("There is no LCA!")
         
         else:
-            finalLCA = lcaList[0]
+            lca = id1
+            splitLcaPath = []
             
-            for item in lcaList[1:]:
-                if not finalLCA == item:
-                    finalLCA = None
-                    break
-        
-        if not finalLCA == None:
-            self.cursor.execute("SELECT name FROM person WHERE pid=?", (finalLCA,))
+            self.cursor.execute("SELECT name FROM person WHERE pid=?", (lca,))
             lcaName = self.cursor.fetchone()
             
-            splitLcaPath1 = lcaPath1.split(str(finalLCA) + '.')[1].split('.')
-            splitLcaPath2 = lcaPath2.split(str(finalLCA) + '.')[1].split('.')
-            lcaIDs = [str(finalLCA)] + splitLcaPath1 + splitLcaPath2
+            for path in self.lcaPath:
+                tempPath = path.split(str(lca) + '.')
+                
+                if len(tempPath) > 1 and not tempPath[1] == "":
+                    splitLcaPath += tempPath[1].split('.')
             
-            print("The LCA is", finalLCA, ":", lcaName["name"])
+            lcaIDs = [str(lca)] + splitLcaPath
+            
+            print("The LCA is", lca, ":", lcaName["name"])
         
             self.cursor.close()
             self.connection.close()
@@ -165,9 +106,57 @@ class Searcher:
                 
             else:
                 print(dotFile)
+            
         
-        else:
-            print("There is no LCA!")
+    def recursiveLCA(self, id1, id2):
+        lca = None
+        
+        path1 = self.generatePathOf(id1)
+        path2 = self.generatePathOf(id2)
+        
+        lcaPath1 = None
+        lcaPath2 = None
+        
+        maxPrefix = 0
+            
+        for row1 in path1:
+            splitPath1 = row1.split('.')
+                
+            for row2 in path2:                    
+                prefix = 0
+                splitPath2 = row2.split('.')
+                    
+                if len(splitPath1) >= len(splitPath2):
+                    longPathIter = iter(splitPath1)
+                    shortPathIter = iter(splitPath2)
+                        
+                else:
+                    longPathIter = iter(splitPath2)
+                    shortPathIter = iter(splitPath1)
+                    
+                for singlePathID1 in shortPathIter:
+                    singlePathID2 = next(longPathIter)
+                        
+                    prefix += 1
+                        
+                    # DO NOT combine these two if statements to one
+                    # because we only want to run the else part if the
+                    # first condition isn't True.
+                    if singlePathID1 == singlePathID2:
+                        if prefix > maxPrefix:
+                            lca = int(singlePathID1)
+                            lcaPath1 = row1
+                            lcaPath2 = row2
+                            maxPrefix = prefix
+                            
+                    else:
+                        break
+        
+        if not (lcaPath1 == None and lcaPath2 == None):            
+            self.lcaPath.append(lcaPath1)
+            self.lcaPath.append(lcaPath2)
+        
+        return lca
         
         
     def recursiveAncestorsPath(self, advisors, treeString):
@@ -193,8 +182,8 @@ class Searcher:
                 
             else:
                 # If we reach the highest ancestor, then store this string!
-                self.paths.append(treeString)
-                print(treeString)
+                self.paths.append(treeString + ".")
+                print(treeString + ".")
                 # We have to delete the last node from the string because we are following another path now
                 treeString = treeString.split(".", 1)[1]
                 
@@ -222,6 +211,7 @@ class Searcher:
                 
             else:
                 # If we reach the highest ancestor, then store this string!
-                self.paths.append(treeString)
+                self.paths.append(treeString + ".")
+                print(treeString + ".")
                 # We have to delete the last node from the string because we are following another path now
                 treeString = treeString.rsplit(".", 1)[0]
