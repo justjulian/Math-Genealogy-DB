@@ -45,7 +45,11 @@ class Visualizer:
     edge [style=bold];\n\n"""
     
         for id in printIDs:
-            id = int(id)
+            try:
+                id = int(id)
+                
+            except ValueError:
+                continue
             
             if id not in printedIDs:
                 printedIDs.append(id)
