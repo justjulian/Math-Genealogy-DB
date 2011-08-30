@@ -1,0 +1,112 @@
+HOW TO RUN THE MATH-GENEALOGY-DATABASE (by Julian Wintermayr)
+
+
+1. To run the Math-Genealogy-Database you need Python 3.X installed (http://www.python.org/download/releases/3.2.1)
+
+2. Install SVN (http://subversion.apache.org/packages.html)
+
+3. Change to the folder where you would like to save your Math-Genealogy-Database
+   cd path/to/folder
+
+4. Check out the latest project source code by running
+   svn checkout http://math-genealogy-db.googlecode.com/svn/trunk/ math-genealogy-db
+   A new folder named "math-genealogy-db" will be created.
+
+5. Change into that folder and run mgdb.py:
+   cd math-genealogy-db
+   python3 mgdb.py --help
+
+6. To update an existing version repeat step number 4 in the folder where your copy of the Math-Genealogy-Database is stored.
+
+The database and the DOT-files to visualize your search results will also be stored in this folder.
+To convert the DOT-files to an image you need a tool which can process DOT-files like Graphviz (http://www.graphviz.org/Download.php). See the example usage how to convert it with Graphviz. 
+
+
+If you know what you are doing, then you can also follow these next steps to run the tool more comfortable:
+
+7. Make the file "mgdb.py" executable
+
+8. Change the first line (#!/usr/bin/python3) of this file to the path where you have installed Python 3
+
+9. Rename the file to "mgdb" (delete the ".py")
+
+10. You can now run the tool in the math-genealogy-db folder by entering
+    ./mgdb --help
+
+
+Example usage of searching for two IDs and for their lowest common ancestors:
+
+1. Find the ID of "Rudolf Jakob Camerarius":
+
+   python3 mgdb.py -n Camerarius
+   
+   >> ID: 128938  Name: Rudolf Jakob Camerarius  University: Eberhard-Karls-Universität Tübingen  Year: 1684, 1686
+   >> ID: 76482  Name: Elias Rudolph Camerarius, Jr.  University: Eberhard-Karls-Universität Tübingen  Year: 1691
+   >> ID: 76481  Name: Elias Rudolph Camerarius, Sr.  University: Eberhard-Karls-Universität Tübingen  Year: 1663
+
+
+2. Find the ID of "Johann Andreas Segner":
+
+   python3 mgdb.py -n Segner
+   
+   >> ID: 60782  Name: Johann Andreas Segner  University: Friedrich-Schiller-Universität Jena  Year: 1726, 1734
+   >> ID: 128623  Name: Peter  Segner  University: Technische Universität München  Year: 1995
+
+
+3. Update all ancestors of ID 128938 (Camerarius):
+
+   python3 mgdb.py -i -a 128938
+
+   >> Grabbing record # 128938
+   >> Grabbing record # 123974
+   >> Grabbing record # 128743
+   >> Grabbing record # 128931
+   >> Grabbing record # 128991
+                .
+                .
+                .
+
+
+4. Update all ancestors of ID 60782 (Segner):
+
+   python3 mgdb.py -i -a 60782
+
+   >> Grabbing record # 60782
+   >> Grabbing record # 125886
+   >> Grabbing record # 125846
+   >> Grabbing record # 125488
+   >> Grabbing record # 125154
+                .
+                .
+                .
+
+
+5. Find the lowest common ancestor these two persons and create a DOT-file called "lcaQuery.dot":
+
+   python3 mgdb.py -L -s lcaQuery 128938 60782
+
+   >> Updating path of # 128938
+   >> 126724.126730.126827.127061.127459.127606.129009.128991.128931.128743.123974.128938
+   >> 126113.126177.126827.127061.127459.127606.129009.128991.128931.128743.123974.128938
+   >> 127264.126887.126087.126109.126112.126177.126827.127061.127459.127606.129009.128991.128931.128743.123974.128938
+   >> 146365.134780.131575.131561.126109.126112.126177.126827.127061.127459.127606.129009.128991.128931.128743.123974.128938
+                .
+                .
+                .
+   >> Updating path of # 60782
+   >> 125888.125681.125658.125665.125047.125148.128305.128122.128105.127848.126111.125154.125488.125846.125886.60782
+   >> 125794.125682.125658.125665.125047.125148.128305.128122.128105.127848.126111.125154.125488.125846.125886.60782
+   >> 146365.134780.131575.131561.131444.125760.125682.125658.125665.125047.125148.128305.128122.128105.127848.126111.125154.125488.125846.125886.60782
+   >> 134781.131575.131561.131444.125760.125682.125658.125665.125047.125148.128305.128122.128105.127848.126111.125154.125488.125846.125886.60782
+   >> 125755.125760.125682.125658.125665.125047.125148.128305.128122.128105.127848.126111.125154.125488.125846.125886.60782
+                .
+                .
+                .   
+   >> The LCA is 125154 : Werner  Rolfinck
+
+
+6. Run Graphviz to visualize the result:
+
+   dot -Tsvg lcaQuery.dot > lcaQuery.svg
+
+   Converts the DOT-file to an image file.
