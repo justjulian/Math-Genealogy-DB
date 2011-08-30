@@ -27,6 +27,7 @@ import databaseConnection
 
 class Searcher:
     """
+    Class for several search methods.
     """
     def __init__(self, filename):
         self.paths = []
