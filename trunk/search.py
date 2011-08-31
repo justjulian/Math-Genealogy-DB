@@ -33,6 +33,7 @@ class Searcher:
         self.paths = []
         self.lcaPath = []
         self.filename = filename
+        self.maxPrefix = 0
         
         databaseConnector = databaseConnection.DatabaseConnector()
         connector = databaseConnector.connectToSQLite()
@@ -92,7 +93,7 @@ class Searcher:
             
             lcaIDs = [str(lca)] + splitLcaPath
             
-            print("The LCA is", lca, ":", lcaName["name"])
+            print("The LCA with", self.maxPrefix, "common ancestors is", lca, ":", lcaName["name"])
         
             self.cursor.close()
             self.connection.close()
@@ -118,7 +119,7 @@ class Searcher:
         lcaPath1 = None
         lcaPath2 = None
         
-        maxPrefix = 0
+        self.maxPrefix = 0
             
         for row1 in path1:
             splitPath1 = row1.split('.')
@@ -144,11 +145,11 @@ class Searcher:
                     # because we only want to run the else part if the
                     # first condition isn't True.
                     if singlePathID1 == singlePathID2:
-                        if prefix > maxPrefix:
+                        if prefix > self.maxPrefix:
                             lca = int(singlePathID1)
                             lcaPath1 = row1
                             lcaPath2 = row2
-                            maxPrefix = prefix
+                            self.maxPrefix = prefix
                             
                     else:
                         break
