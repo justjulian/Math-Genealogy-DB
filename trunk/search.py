@@ -34,14 +34,53 @@ class Searcher:
         self.lcaPath = []
         self.filename = filename
         self.maxPrefix = 0
+        
         self.descendantsSet = set()
         self.descendantsList = []
+        
+        self.ancestorsSet = set()
+        self.ancestorsList = []
         
         databaseConnector = databaseConnection.DatabaseConnector()
         connector = databaseConnector.connectToSQLite()
         self.connection = connector[0]
         self.cursor = connector[1]
         
+
+    def allAncestors(self, id):
+        id = id[0]
+        self.ancestorsList.append(id)
+        
+        self.cursor.execute("SELECT advisor FROM advised WHERE student=?", (id,))
+        tempList = self.cursor.fetchall()
+        advisors = []
+            
+        for row in tempList:
+            advisors.append(row["advisor"])
+        
+        if len(advisors) > 0:
+            self.recursiveAncestors(False, advisors)
+        
+        if len(self.ancestorsList) < 2:
+            print("There are no ancestors!")
+        
+        else:
+            print("The ancestors of", id, "are", self.ancestorsList)
+        
+            self.cursor.close()
+            self.connection.close()
+        
+            visualizer = visualize.Visualizer()
+            dotFile = visualizer.generateDotFile(self.ancestorsList)
+            
+            if self.filename is not None:
+                ancestorsQuery = open(self.filename + ".dot", "w")
+                print(dotFile, file=ancestorsQuery)
+                ancestorsQuery.close()
+                
+            else:
+                print(dotFile)
+
         
     def allDescendants(self, id):
         id = id[0]
@@ -77,6 +116,39 @@ class Searcher:
             else:
                 print(dotFile)
         
+
+    def recursiveAncestors(self, useSet, advisors):
+        for advisor in advisors:
+            if useSet:
+                # Sets don't allow double entries and are faster than lists but can't iterate.
+                self.ancestorsSet.add(advisor)
+            
+            else:
+                # Used for search method "all ancestors". In this mode we don't need to
+                # worry about double entries as the visualization module deletes them anyway.
+                self.ancestorsList.append(advisor)
+            
+            self.cursor.execute("SELECT advisor FROM advised WHERE student=?", (advisor,))
+            tempList = self.cursor.fetchall()
+            nextAdvisors = []
+            
+            for row in tempList:
+                nextAdvisors.append(row["advisor"])
+                
+            ungrabbedAdvisors = []
+
+            if len(nextAdvisors) > 0:
+                for nextAdvisor in nextAdvisors:
+                    if useSet:
+                        if nextAdvisor not in self.ancestorsSet:
+                            ungrabbedStudents.append(nextAdvisor)
+                    
+                    else:
+                        if nextAdvisor not in self.ancestorsList:
+                            ungrabbedAdvisors.append(nextAdvisor)
+                        
+                self.recursiveAncestors(useSet, ungrabbedAdvisors)
+
         
     def numberOfDescendants(self, students):
         self.recursiveDescendants(True, students)
