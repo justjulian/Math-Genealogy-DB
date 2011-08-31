@@ -48,7 +48,6 @@ class Mathgenealogy:
         self.aa = False
         self.ad = False
         self.sp = False
-        self.plot = False
         self.verbose = False
         self.writeFilename = None
 
@@ -74,7 +73,7 @@ class Mathgenealogy:
                                help="Retrieve descendants of IDs and include in graph. Only available for update-by-ID!")
         
         self.parser.add_option("-L", "--least-common-advisor", action="store_true", dest="lca", default=False,
-                               help="Search method: Search for the least common advisor of an arbitrary number of mathematicians. INPUT: IDs of the mathematicians separated by spaces")
+                               help="Search method: Search for the lowest common advisor of an arbitrary number of mathematicians. INPUT: IDs of the mathematicians separated by spaces")
         self.parser.add_option("-G", "--greatest-shared-student", action="store_true", dest="gss", default=False,
                                help="Search method: Search for the greatest shared student of an arbitrary number of mathematicians. INPUT: IDs of the mathematicians separated by spaces")
         self.parser.add_option("-A", "--all-ancestors", action="store_true", dest="aa", default=False,
@@ -83,8 +82,6 @@ class Mathgenealogy:
                                help="Search method: Search for all descendants of one mathematician. INPUT: ID of one mathematician")
         self.parser.add_option("-P", "--shortest-path", action="store_true", dest="sp", default=False,
                                help="Search method: Search for the shortest path between two mathematicians with the additional option to include or exclude nodes. INPUT: Two IDs of the mathematicians to search for their shortest path. Then IDs of the mathematicians to include to the path. Finally IDs of the mathematicians to exclude from the path (enter a zero in front of the original ID without space). Every ID separated by spaces.")
-        self.parser.add_option("-p", "--plot", action="store_true", dest="plot", default=False,
-                               help="Generate dot-file and create plot of the result via Graphviz. Only available for search methods, not for update methods!")
         self.parser.add_option("-s", "--save-to-file", dest="filename", metavar="FILE", default=None,
                                help="Write output to a dot-file [default: stdout]. Only available for search methods, not for update methods!")
         
@@ -105,7 +102,6 @@ class Mathgenealogy:
         self.aa = options.aa
         self.ad = options.ad
         self.sp = options.sp
-        self.plot = options.plot
         self.verbose = options.verbose
         self.writeFilename = options.filename
         
@@ -118,7 +114,7 @@ class Mathgenealogy:
             raise SyntaxError("%s: error: no IDs or no last name passed" % (self.parser.get_prog_name()))
         
         # Check for the correct combination of options
-        if (self.updateByName or self.updateByID or self.forceNaive or self.ancestors or self.descendants) and (self.lca or self.gss or self.aa or self.ad or self.sp or self.plot or (self.writeFilename is not None)):
+        if (self.updateByName or self.updateByID or self.forceNaive or self.ancestors or self.descendants) and (self.lca or self.gss or self.aa or self.ad or self.sp or (self.writeFilename is not None)):
             raise SyntaxError("%s: error: invalid combination of options" % (self.parser.get_prog_name()))
         
         if (self.updateByName and (self.ancestors or self.descendants)):
@@ -182,3 +178,7 @@ class Mathgenealogy:
         if self.lca:
             searcher = search.Searcher(self.writeFilename)
             searcher.lca(self.passedIDs)
+            
+        if self.ad:
+            searcher = search.Searcher(self.writeFilename)
+            searcher.allDescendants(self.passedIDs)
