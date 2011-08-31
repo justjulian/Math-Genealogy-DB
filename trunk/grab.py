@@ -26,6 +26,7 @@
 import urllib.request, urllib.parse, urllib.error
 import re
 from html.entities import name2codepoint
+import time
 
 
 
@@ -44,6 +45,9 @@ class Grabber:
         self.dissertation = []
         self.advisors = []
         self.descendants = []
+        
+        # Break to avoid the risk of being blocked.
+        time.sleep(1)
 
 
     def unescape(self, s):
