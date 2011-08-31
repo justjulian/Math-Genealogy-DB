@@ -178,6 +178,10 @@ class Mathgenealogy:
         if self.lca:
             searcher = search.Searcher(self.writeFilename)
             searcher.lca(self.passedIDs)
+        
+        if self.aa:
+            searcher = search.Searcher(self.writeFilename)
+            searcher.allAncestors(self.passedIDs)
             
         if self.ad:
             searcher = search.Searcher(self.writeFilename)
