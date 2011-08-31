@@ -76,7 +76,7 @@ class Visualizer:
                 students = self.cursor.fetchall()
             
                 for student in students:
-                    if str(student["student"]) in printIDs:
+                    if str(student["student"]) in printIDs or student["student"] in printIDs:
                         # Merge everything to a string
                         edgeStr = "\n    {} -> {};".format(id, student["student"])
                         edges += edgeStr
