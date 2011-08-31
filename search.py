@@ -34,12 +34,88 @@ class Searcher:
         self.lcaPath = []
         self.filename = filename
         self.maxPrefix = 0
+        self.descendantsSet = set()
+        self.descendantsList = []
         
         databaseConnector = databaseConnection.DatabaseConnector()
         connector = databaseConnector.connectToSQLite()
         self.connection = connector[0]
         self.cursor = connector[1]
         
+        
+    def allDescendants(self, id):
+        id = id[0]
+        self.descendantsList.append(id)
+        
+        self.cursor.execute("SELECT student FROM advised WHERE advisor=?", (id,))
+        tempList = self.cursor.fetchall()
+        students = []
+            
+        for row in tempList:
+            students.append(row["student"])
+        
+        if len(students) > 0:
+            self.recursiveDescendants(False, students)
+        
+        if len(self.descendantsList) < 2:
+            print("There are no descendants!")
+        
+        else:
+            print("The descendants of", id, "are", self.descendantsList)
+        
+            self.cursor.close()
+            self.connection.close()
+        
+            visualizer = visualize.Visualizer()
+            dotFile = visualizer.generateDotFile(self.descendantsList)
+            
+            if self.filename is not None:
+                descendantsQuery = open(self.filename + ".dot", "w")
+                print(dotFile, file=descendantsQuery)
+                descendantsQuery.close()
+                
+            else:
+                print(dotFile)
+        
+        
+    def numberOfDescendants(self, students):
+        self.recursiveDescendants(True, students)
+        
+        return len(self.descendantsSet)
+        
+
+    def recursiveDescendants(self, useSet, students):
+        for student in students:
+            if useSet:
+                # Sets don't allow double entries and are faster than lists but can't iterate.
+                self.descendantsSet.add(student)
+            
+            else:
+                # Used for search method "all descendants". In this mode we don't need to
+                # worry about double entries as the visualization module deletes them anyway.
+                self.descendantsList.append(student)
+            
+            self.cursor.execute("SELECT student FROM advised WHERE advisor=?", (student,))
+            tempList = self.cursor.fetchall()
+            nextStudents = []
+            
+            for row in tempList:
+                nextStudents.append(row["student"])
+                
+            ungrabbedStudents = []
+
+            if len(nextStudents) > 0:
+                for nextStudent in nextStudents:
+                    if useSet:
+                        if nextStudent not in self.descendantsSet:
+                            ungrabbedStudents.append(nextStudent)
+                    
+                    else:
+                        if nextStudent not in self.descendantsList:
+                            ungrabbedStudents.append(nextStudent)
+                        
+                self.recursiveDescendants(useSet, ungrabbedStudents)
+
         
     def generatePathOf(self, id):
         print("Updating path of #", id)
