@@ -89,13 +89,21 @@ class Grabber:
         self.advisors = []
         self.descendants = []
 
+        errorCounter = 0
+        
         # Split the page string at newline characters.
         psarray = self.pagestr.split('\n')
         
-        if psarray[0].find("You have specified an ID that does not exist in the database. Please back up and try again.") > -1:
-            # Then a bad URL (e.g., a bad record id) was given. Throw an exception.
-            msg = "Invalid page address for id %d" % (self.id)
-            raise ValueError(msg)
+        while psarray[0].find("You have specified an ID that does not exist in the database. Please back up and try again.") > -1:
+            errorCounter += 1
+            time.sleep(5)
+            self.getPage()
+            psarray = self.pagestr.split('\n')
+            
+            if errorCounter == 15:
+                # Then a bad URL (e.g., a bad record id) was given. Throw an exception.
+                msg = "Invalid page address for id %d" % (self.id)
+                raise ValueError(msg)
 
         lines = iter(psarray)
         for line in lines:
