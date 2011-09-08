@@ -252,30 +252,32 @@ class Updater:
             [name, uni, year, advisors, students, dissertation, numberOfDescendants] = self.grabNode(id)
             self.naiveUpdate(id, name, uni, year, advisors, dissertation, numberOfDescendants)
             
-            print("Online descendants:", numberOfDescendants)
-            
-            # Compare online stored number of descendants with calculated number of descendants
-            # given by the advised-table.
-            # If numbers are equal, no mathematician has been added and no update is needed.
-            self.cursor.execute("SELECT student FROM advised WHERE advisor=?", (id,))
-            tempList = self.cursor.fetchall()
-            
-            if not self.naiveMode and len(tempList) > 0:
-                storedStudents = []
+            if descendants:
                 
-                for row in tempList:
-                    storedStudents.append(row["student"])
+                print("Online descendants:", numberOfDescendants)
+            
+                # Compare online stored number of descendants with calculated number of descendants
+                # given by the advised-table.
+                # If numbers are equal, no mathematician has been added and no update is needed.
+                self.cursor.execute("SELECT student FROM advised WHERE advisor=?", (id,))
+                tempList = self.cursor.fetchall()
+            
+                if not self.naiveMode and len(tempList) > 0:
+                    storedStudents = []
+                
+                    for row in tempList:
+                        storedStudents.append(row["student"])
                     
-                searcher = search.Searcher(False)
-                calculatedNumber = searcher.numberOfDescendants(storedStudents)
+                    searcher = search.Searcher(False)
+                    calculatedNumber = searcher.numberOfDescendants(storedStudents)
                 
-                print("In local database:", calculatedNumber)
+                    print("In local database:", calculatedNumber)
                 
-                if calculatedNumber == numberOfDescendants:
-                    continue
+                    if calculatedNumber == numberOfDescendants:
+                        continue
             
-            else:
-                print("In local database:", 0)
+                else:
+                    print("In local database:", 0)
             
             if ancestors:
                 self.recursiveAncestors(advisors)
