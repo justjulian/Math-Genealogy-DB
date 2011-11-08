@@ -93,10 +93,6 @@ class Mathgenealogy:
 							   help="Search method: Search for the lowest common advisor of an arbitrary number of \
 							   mathematicians. INPUT: IDs of the mathematicians separated by spaces")
 
-		self.parser.add_option("-G", "--greatest-shared-student", action="store_true", dest="gss", default=False,
-							   help="Search method: Search for the greatest shared student of an arbitrary number of \
-							   mathematicians. INPUT: IDs of the mathematicians separated by spaces")
-
 		self.parser.add_option("-A", "--all-ancestors", action="store_true", dest="aa", default=False,
 							   help="Search method: Search for all ancestors of one mathematician. INPUT: ID of one \
 							   mathematician")
