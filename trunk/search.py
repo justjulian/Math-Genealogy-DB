@@ -175,12 +175,9 @@ class Searcher:
 	def recursiveDescendants(self, useSet, students):
 		for student in students:
 			if useSet:
-				# Sets don't allow double entries and are faster than lists but can't iterate.
 				self.descendantsSet.add(student)
 
 			else:
-				# Used for search method "all descendants". In this mode we don't need to
-				# worry about double entries as the visualization module deletes them anyway.
 				self.descendantsList.append(student)
 
 			self.cursor.execute("SELECT student FROM advised WHERE advisor=?", (student,))
