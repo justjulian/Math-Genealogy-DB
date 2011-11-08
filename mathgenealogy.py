@@ -44,7 +44,6 @@ class Mathgenealogy:
 		self.ancestors = False
 		self.descendants = False
 		self.lca = False
-		self.gss = False
 		self.aa = False
 		self.ad = False
 		self.sp = False
@@ -131,7 +130,6 @@ class Mathgenealogy:
 		self.ancestors = options.ancestors
 		self.descendants = options.descendants
 		self.lca = options.lca
-		self.gss = options.gss
 		self.aa = options.aa
 		self.ad = options.ad
 		self.sp = options.sp
@@ -149,7 +147,7 @@ class Mathgenealogy:
 
 		# Check for the correct combination of options
 		if (self.updateByName or self.updateByID or self.forceNaive or self.ancestors or self.descendants) and\
-		   (self.lca or self.gss or self.aa or self.ad or self.sp or (self.writeFilename is not None)):
+		   (self.lca or self.aa or self.ad or self.sp or (self.writeFilename is not None)):
 			raise SyntaxError("%s: error: invalid combination of options" % (self.parser.get_prog_name()))
 
 		if self.updateByName and (self.ancestors or self.descendants):
@@ -158,22 +156,19 @@ class Mathgenealogy:
 		if self.updateByName and self.updateByID:
 			raise SyntaxError("%s: error: you can only choose one update method" % (self.parser.get_prog_name()))
 
-		if self.lca and (self.gss or self.aa or self.ad or self.sp):
+		if self.lca and (self.aa or self.ad or self.sp):
 			raise SyntaxError("%s: error: you can only choose one search method" % (self.parser.get_prog_name()))
 
-		if self.gss and (self.lca or self.aa or self.ad or self.sp):
+		if self.aa and (self.lca or self.ad or self.sp):
 			raise SyntaxError("%s: error: you can only choose one search method" % (self.parser.get_prog_name()))
 
-		if self.aa and (self.gss or self.lca or self.ad or self.sp):
+		if self.ad and (self.aa or self.lca or self.sp):
 			raise SyntaxError("%s: error: you can only choose one search method" % (self.parser.get_prog_name()))
 
-		if self.ad and (self.gss or self.aa or self.lca or self.sp):
+		if self.sp and (self.aa or self.ad or self.lca):
 			raise SyntaxError("%s: error: you can only choose one search method" % (self.parser.get_prog_name()))
 
-		if self.sp and (self.gss or self.aa or self.ad or self.lca):
-			raise SyntaxError("%s: error: you can only choose one search method" % (self.parser.get_prog_name()))
-
-		if not (self.updateByName or self.updateByID or self.lca or self.gss or self.aa or self.ad or self.sp):
+		if not (self.updateByName or self.updateByID or self.lca or self.aa or self.ad or self.sp):
 			raise SyntaxError("%s: error: you have to choose one update method or one search method"
 			% (self.parser.get_prog_name()))
 
