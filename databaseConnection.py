@@ -25,41 +25,41 @@ import sqlite3
 
 
 class DatabaseConnector:
-    """
-    Class for connecting with a database.
-    """
-    def __init__(self):
-        self.connection = None
-        self.cursor = None
+	"""
+	Class for connecting with a database.
+	"""
+	def __init__(self):
+		self.connection = None
+		self.cursor = None
 
 
-    def connectToSQLite(self):
-        """
-        Connect to the local SQLite-database if not already connected.
-        Create local database if it not already exists.
-        """
-        if self.connection == None:
-            try:
-                self.connection = sqlite3.connect("MG-DB")
-                
-                # Use sqlite3.Row to enable direct access to the stored data of the table.
-                self.connection.row_factory = sqlite3.Row
-                self.cursor = self.connection.cursor()
+	def connectToSQLite(self):
+		"""
+		Connect to the local SQLite-database if not already connected.
+		Create local database if it not already exists.
+		"""
+		if self.connection == None:
+			try:
+				self.connection = sqlite3.connect("MG-DB")
 
-                self.cursor.execute("CREATE TABLE IF NOT EXISTS person \
-                                    (pid INTEGER PRIMARY KEY ASC ON CONFLICT IGNORE, name TEXT, descendants INTEGER)")    
-                self.cursor.execute("CREATE TABLE IF NOT EXISTS advised \
-                                    (student INTEGER, dissertationNumber INTEGER, advisorOrder INTEGER, advisor INTEGER, \
-                                    UNIQUE (student, dissertationNumber, advisor) ON CONFLICT IGNORE)")
-                self.cursor.execute("CREATE TABLE IF NOT EXISTS dissertation \
-                                    (did INTEGER, number INTEGER, title TEXT, university TEXT, year TEXT, \
-                                    UNIQUE (did, number) ON CONFLICT IGNORE)")
- 
-                self.connection.commit()
-    
-            except sqlite3.Error:
-                print("Can neither create local database nor connect with an existing one!")
-                raise
-            
-        connector = [self.connection, self.cursor]
-        return connector
+				# Use sqlite3.Row to enable direct access to the stored data of the table.
+				self.connection.row_factory = sqlite3.Row
+				self.cursor = self.connection.cursor()
+
+				self.cursor.execute("CREATE TABLE IF NOT EXISTS person \
+									(pid INTEGER PRIMARY KEY ASC ON CONFLICT IGNORE, name TEXT, descendants INTEGER)")
+				self.cursor.execute("CREATE TABLE IF NOT EXISTS advised \
+									(student INTEGER, dissertationNumber INTEGER, advisorOrder INTEGER, advisor INTEGER, \
+									UNIQUE (student, dissertationNumber, advisor) ON CONFLICT IGNORE)")
+				self.cursor.execute("CREATE TABLE IF NOT EXISTS dissertation \
+									(did INTEGER, number INTEGER, title TEXT, university TEXT, year TEXT, \
+									UNIQUE (did, number) ON CONFLICT IGNORE)")
+
+				self.connection.commit()
+
+			except sqlite3.Error:
+				print("Can neither create local database nor connect with an existing one!")
+				raise
+
+		connector = [self.connection, self.cursor]
+		return connector
