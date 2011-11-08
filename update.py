@@ -48,13 +48,15 @@ class Updater:
 	def findID(self, lastName):
 		"""
 		Find the corresponding ID of a mathematician listed in the
-		Mathematics Genealogy Project. This ID is needed to run in Update-by-ID.
+		Mathematics Genealogy Project. This ID is needed to run Update-by-ID.
 		"""
 		# Get the raw data of this site. Return an object of class 'http.client.HTTPResponse'
 		page = urllib.request.urlopen("http://genealogy.math.ndsu.nodak.edu/query-prep.php",
 									  urllib.parse.urlencode({"family_name":lastName}).encode())
+
 		# Read the raw data and return an object of class 'bytes' (html-code)
 		pagestr = page.read()
+
 		# Convert bytes-string to readable UTF-8 html-code of class 'str'
 		pagestr = pagestr.decode("utf-8")
 
@@ -91,7 +93,7 @@ class Updater:
 		"""
 		Take the arguments and update or create the tables mathematicians, advised and dissertation
 		of the local database.
-		Replace existing mathematician.
+		Replace existing mathematicians.
 		"""
 		self.cursor.execute("INSERT INTO person VALUES (?, ?, ?)",  (id, name, numberOfDescendants))
 
@@ -103,7 +105,7 @@ class Updater:
 		iterUni = iter(unis)
 		iterYear = iter(years)
 
-		# Lists dissertation, uni and year have the same length. The items are either set or None.
+		# The lists dissertation, uni and year have the same length. The items are either set or None.
 		# Hence, iterating one of them is enough to avoid range errors.
 		for dissertation in dissertations:
 			uni = next(iterUni)
@@ -116,7 +118,7 @@ class Updater:
 			for advID in iterAdvisor:
 				# If advisors are separated by 0, then a new set of advisors starts
 				# which means, that there is also another dissertation.
-				# Hence, the order must be reseted and the next advisors must be grabbed.
+				# Hence, the order must be reset and the next set of advisors must be grabbed.
 				if advID == 0:
 					advOrder = 0
 					break
