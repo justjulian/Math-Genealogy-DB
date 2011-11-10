@@ -36,8 +36,11 @@ class Updater:
 		self.foundID = False
 		self.foundIDs = []
 		self.naiveMode = naive
+
+		# The Grabber returns only for the students a set and not for the advisors as the advisors need to be
+		# ordererd to separate different advisor sets
 		self.currentAdvisorsGrab = []
-		self.currentStudentsGrab = []
+		self.currentStudentsGrab = set()
 
 		databaseConnector = databaseConnection.DatabaseConnector()
 		connector = databaseConnector.connectToSQLite()
@@ -205,7 +208,7 @@ class Updater:
 		"""
 		for student in students:
 			[name, uni, year, nextAdvisors, nextStudents, dissertation, numberOfDescendants] = self.grabNode(student)
-			self.currentStudentsGrab.append(student)
+			self.currentStudentsGrab.add(student)
 
 			# Compare online stored number of descendants with calculated number of descendants
 			# given by the advised-table.
@@ -227,10 +230,10 @@ class Updater:
 				print("Online descendants =", onlineNumber)
 
 				if len(localStudents) > 0:
-					storedStudents = []
+					storedStudents = set()
 
 					for row in localStudents:
-						storedStudents.append(row["student"])
+						storedStudents.add(row["student"])
 
 					searcher = search.Searcher(False, False)
 					calculatedNumber = searcher.numberOfDescendants(storedStudents)
@@ -255,14 +258,8 @@ class Updater:
 				else:
 					print("In local database: N/A")
 
-			ungrabbedStudents = []
-
 			if len(nextStudents) > 0:
-				for nextStudent in nextStudents:
-					if nextStudent not in self.currentStudentsGrab:
-						ungrabbedStudents.append(nextStudent)
-
-				self.recursiveDescendants(ungrabbedStudents)
+				self.recursiveDescendants(nextStudents.difference(self.currentStudentsGrab))
 
 
 	def updateByID(self, ids, ancestors, descendants):
