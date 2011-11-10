@@ -44,10 +44,10 @@ class Grabber:
 		self.year = []
 		self.dissertation = []
 		self.advisors = []
-		self.descendants = []
+		self.descendants = set()
 
 		# Break to avoid the risk of being blocked.
-		time.sleep(1)
+		time.sleep(0.4)
 
 
 	def unescape(self, s):
@@ -63,11 +63,10 @@ class Grabber:
 		"""
 		Grab the page for self.id from the Math Genealogy Project.
 		"""
-		if self.pagestr is None:
-			url = 'http://genealogy.math.ndsu.nodak.edu/id.php?id=' + str(self.id)
-			page = urllib.request.urlopen(url)
-			self.pagestr = page.read()
-			self.pagestr = self.pagestr.decode('utf-8')
+		url = 'http://genealogy.math.ndsu.nodak.edu/id.php?id=' + str(self.id)
+		page = urllib.request.urlopen(url)
+		self.pagestr = page.read()
+		self.pagestr = self.pagestr.decode('utf-8')
 
 
 	def extractNodeInformation(self):
@@ -80,14 +79,7 @@ class Grabber:
 		Year stores a text and not an integer as several years per
 		dissertation are possible.
 		"""
-		if self.pagestr is None:
-			self.getPage()
-
-		self.institution = []
-		self.year = []
-		self.dissertation = []
-		self.advisors = []
-		self.descendants = []
+		self.getPage()
 
 		errorCounter = 0
 
@@ -107,6 +99,7 @@ class Grabber:
 				raise ValueError(msg)
 
 		lines = iter(psarray)
+
 		for line in lines:
 			# Get name
 			if line.find('h2 style=') > -1:
@@ -155,7 +148,7 @@ class Grabber:
 			# Get students
 			if '<tr ' in line:
 				descendant_id = int(line.split('a href=\"id.php?id=')[1].split('\">')[0])
-				self.descendants.append(descendant_id)
+				self.descendants.add(descendant_id)
 
 			# Get number of descendants
 			# Uses only '</a> and ' as search string and not '>students</a> and '

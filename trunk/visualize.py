@@ -33,16 +33,56 @@ class Visualizer:
 		connector = databaseConnector.connectToSQLite()
 		self.connection = connector[0]
 		self.cursor = connector[1]
-		self.color = "black"
+
 		self.noDetails = details
 
 
-	def generateDotFile(self, printIDs):
-		# Flatten list
-		printIDs = [item for sublist in printIDs for item in sublist]
+	def createNodeStr(self, color, id):
+		# Get name
+		self.cursor.execute("SELECT name FROM person WHERE pid=?", (id,))
+		row = self.cursor.fetchone()
+		name = row["name"]
 
-		printedIDs = []
-		lcaList = []
+		# Get dissertation, university and year
+		# Only information of one dissertation will be printed
+		self.cursor.execute("SELECT university, year FROM dissertation WHERE did=?", (id,))
+		row = self.cursor.fetchone()
+		uni = row["university"]
+		year = row["year"]
+
+		# Merge everything to a string and add to DOT-file
+		if self.noDetails:
+			nodeStr = "    {} [label=\"{} ({})\", fontcolor={}, URL=\"http://en.wikipedia.org/wiki/{}\"];"\
+			.format(id, name, year, color, name)
+
+		else:
+			nodeStr = "    {} [label=\"{} \\n{} {}\", fontcolor={}, URL=\"http://en.wikipedia.org/wiki/{}\"];"\
+			.format(id, name, uni, year, color, name)
+
+		return nodeStr
+
+
+	def createEdgeStr(self, color, id, blackSet, redSet):
+		# Get relationship and store it to add it at the end of the
+		# DOT-file when exiting this loop.
+		self.cursor.execute("SELECT student FROM advised WHERE advisor=?", (id,))
+		students = self.cursor.fetchall()
+
+		edges = ""
+
+		for student in students:
+			if redSet is not None and student["student"] in redSet:
+				edgeStr = "\n    {} -> {} [color={}];".format(id, student["student"], color)
+				edges += edgeStr
+
+			elif blackSet is not None and student["student"] in blackSet:
+				edgeStr = "\n    {} -> {} [color=black];".format(id, student["student"])
+				edges += edgeStr
+
+		return edges
+
+
+	def generateDotFile(self, blackSet, redSet=None):
 		edges = ""
 		dotFile = ""
 		dotFile += """digraph genealogy {
@@ -50,82 +90,23 @@ class Visualizer:
 	node [shape=plaintext];
 	edge [style=bold];\n\n"""
 
-		# Fill LCA List first. LCA List contains all nodes which will be highlighted.
-		for id in printIDs:
-			if id == 'red':
-				self.color = 'red'
-				continue
+		if blackSet is not None:
+			for id in blackSet:
+				dotFile += self.createNodeStr("black", id)
+				edge = self.createEdgeStr("black", id, blackSet, redSet)
 
-			if id == 'black':
-				self.color = 'black'
-				break
+				if edge != "":
+					edges += edge
 
-			try:
-				id = int(id)
+				dotFile += "\n"
 
-			except ValueError:
-				continue
+		if redSet is not None:
+			for id in redSet:
+				dotFile += self.createNodeStr("red", id)
+				edge = self.createEdgeStr("red", id, blackSet, redSet)
 
-			if self.color == 'red':
-				lcaList.append(id)
-
-
-		for id in printIDs:
-			if id == 'red':
-				self.color = 'red'
-				continue
-
-			if id == 'black':
-				self.color = 'black'
-				continue
-
-			try:
-				id = int(id)
-
-			except ValueError:
-				continue
-
-			if id not in printedIDs:
-				printedIDs.append(id)
-
-				# Get name
-				self.cursor.execute("SELECT name FROM person WHERE pid=?", (id,))
-				row = self.cursor.fetchone()
-				name = row["name"]
-
-				# Get dissertation, university and year
-				# Only information of one dissertation will be printed
-				self.cursor.execute("SELECT university, year FROM dissertation WHERE did=?", (id,))
-				row = self.cursor.fetchone()
-				uni = row["university"]
-				year = row["year"]
-
-				# Merge everything to a string and add to DOT-file
-				if self.noDetails:
-					nodeStr = "    {} [label=\"{} ({})\", fontcolor={}, URL=\"http://en.wikipedia.org/wiki/{}\"];"\
-					.format(id, name, year, self.color, name)
-
-				else:
-					nodeStr = "    {} [label=\"{} \\n{} {}\", fontcolor={}, URL=\"http://en.wikipedia.org/wiki/{}\"];"\
-					.format(id, name, uni, year, self.color, name)
-
-				dotFile += nodeStr
-
-				# Get relationship and store it to add it at the end of the
-				# DOT-file when exiting this loop.
-				self.cursor.execute("SELECT student FROM advised WHERE advisor=?", (id,))
-				students = self.cursor.fetchall()
-
-				for student in students:
-					if str(student["student"]) in printIDs or student["student"] in printIDs:
-						# Merge everything to a string
-						if student["student"] in lcaList and id in lcaList:
-							edgeStr = "\n    {} -> {} [color=red];".format(id, student["student"])
-
-						else:
-							edgeStr = "\n    {} -> {} [color=black];".format(id, student["student"])
-
-						edges += edgeStr
+				if edge != "":
+					edges += edge
 
 				dotFile += "\n"
 

@@ -30,20 +30,17 @@ class Searcher:
 	Class for several search methods.
 	"""
 	def __init__(self, filename, details):
-		self.paths = []
-		self.lcaPath = []
 		self.filename = filename
 		self.noDetails = details
 		self.maxPrefix = 0
 		self.lcaMode = False
 
-		self.descendantsSet = set()
-		self.descendantsList = []
+		self.ancestorSet = set()
+		self.descendantSet = set()
 
-		self.ancestorsSet = set()
-		self.ancestorsList = []
-
-		self.completeLCAList = []
+		self.LCAset = set()
+		self.paths = set()
+		self.allLCApaths = set()
 
 		databaseConnector = databaseConnection.DatabaseConnector()
 		connector = databaseConnector.connectToSQLite()
@@ -51,178 +48,145 @@ class Searcher:
 		self.cursor = connector[1]
 
 
-	def saveDotFile(self, queryName, rootID, visList):
+	def saveDotFile(self, queryName, rootID, blackSet, redSet=None):
+		# Close database connection
 		self.cursor.close()
 		self.connection.close()
 
+		# Create DOT-file
 		visualizer = visualize.Visualizer(self.noDetails)
-		dotFile = visualizer.generateDotFile(visList)
+		dotFile = visualizer.generateDotFile(blackSet, redSet)
 
+		# Print DOT-file to user defined file
 		if self.filename is not None:
-			id = str(rootID)
-			query = open(self.filename + id + queryName + ".dot", "w")
+			query = open(self.filename + str(rootID) + queryName + ".dot", "w")
 			print(dotFile, file=query)
 			query.close()
 
+		# Print DOT-file to std-out
 		else:
 			print(dotFile)
 
+		# Create new database connection
 		databaseConnector = databaseConnection.DatabaseConnector()
 		connector = databaseConnector.connectToSQLite()
 		self.connection = connector[0]
 		self.cursor = connector[1]
 
 
-	def allAncestors(self, id):
-		id = id[0]
-		self.ancestorsList.append(id)
-
+	def createAdvisorSet(self, id):
+		# Get all advisors
 		self.cursor.execute("SELECT advisor FROM advised WHERE student=?", (id,))
-		tempList = self.cursor.fetchall()
-		advisors = []
+		queryList = self.cursor.fetchall()
 
-		for row in tempList:
-			advisors.append(row["advisor"])
+		# Store advisors in a set
+		advisors = set()
 
+		for row in queryList:
+			advisors.add(row["advisor"])
+
+		return advisors
+
+
+	def createStudentSet(self, id):
+		# Get all students
+		self.cursor.execute("SELECT student FROM advised WHERE advisor=?", (id,))
+		queryList = self.cursor.fetchall()
+
+		# Store students in a set
+		students = set()
+
+		for row in queryList:
+			students.add(row["student"])
+
+		return students
+
+
+	def allAncestors(self, id):
+		# 'id' is a list containing one item
+		id = id[0]
+		self.ancestorSet.add(id)
+
+		advisors = self.createAdvisorSet(id)
+
+		# Start grabbing ancestors recursively
 		if len(advisors) > 0:
-			self.recursiveAncestors(False, advisors)
+			self.recursiveAncestors(advisors)
 
+		# Only create DOT-file if the user only searches for all ancestors and not for the LCA
 		if not self.lcaMode:
-			if len(self.ancestorsList) < 2:
+			# If there is only the start node in the set, then there are no ancestors
+			if len(self.ancestorSet) < 2:
 				print("There are no ancestors!")
 
+			# Create DOT-file
 			else:
-				print("The ancestors of", id, "are", self.ancestorsList)
-				self.ancestorsList = [self.ancestorsList]
-				self.saveDotFile("AllAncestors", id, self.ancestorsList)
+				print("The ancestors of", id, "are", self.ancestorSet)
+				self.saveDotFile("All-Ancestors", id, self.ancestorSet)
 
+		# If searching for the LCA, then store this set
 		else:
-			self.completeLCAList.append(self.ancestorsList)
+			self.LCAset = self.LCAset.union(self.ancestorSet)
 
-		self.ancestorsSet = set()
-		self.ancestorsList = []
+		# Delete set!
+		self.ancestorSet = set()
 
 
 	def allDescendants(self, id):
+		# 'id' is a list containing one item
 		id = id[0]
-		self.descendantsList.append(id)
+		self.descendantSet.add(id)
 
-		self.cursor.execute("SELECT student FROM advised WHERE advisor=?", (id,))
-		tempList = self.cursor.fetchall()
-		students = []
+		students = self.createStudentSet(id)
 
-		for row in tempList:
-			students.append(row["student"])
-
+		# Start grabbing descendants recursively
 		if len(students) > 0:
-			self.recursiveDescendants(False, students)
+			self.recursiveDescendants(students)
 
+		# Only create DOT-file if the user only searches for all descendants and not for the LCA
 		if not self.lcaMode:
-			if len(self.descendantsList) < 2:
+			# If there is only the start node in the set, then there are no descendants
+			if len(self.descendantSet) < 2:
 				print("There are no descendants!")
 
+			# Create DOT-file
 			else:
-				print("The descendants of", id, "are", self.descendantsList)
-				self.descendantsList = [self.descendantsList]
-				self.saveDotFile("AllDescendants", id, self.descendantsList)
+				print("The descendants of", id, "are", self.descendantSet)
+				self.saveDotFile("All-Descendants", id, self.descendantSet)
 
+		# If searching for the LCA, then store this set
 		else:
-			self.completeLCAList.append(self.descendantsList)
+			self.LCAset = self.LCAset.union(self.descendantSet)
 
-		self.descendantsSet = set()
-		self.descendantsList = []
+		# Delete set!
+		self.descendantSet = set()
 
 
-	def recursiveAncestors(self, useSet, advisors):
+	def recursiveAncestors(self, advisors):
 		for advisor in advisors:
-			if useSet:
-				# Sets don't allow double entries and are faster than lists but can't iterate.
-				self.ancestorsSet.add(advisor)
+			self.ancestorSet.add(advisor)
 
-			else:
-				# Used for search method "all ancestors". In this mode we don't need to
-				# worry about double entries as the visualization module deletes them anyway.
-				self.ancestorsList.append(advisor)
-
-			self.cursor.execute("SELECT advisor FROM advised WHERE student=?", (advisor,))
-			tempList = self.cursor.fetchall()
-			nextAdvisors = []
-
-			for row in tempList:
-				nextAdvisors.append(row["advisor"])
-
-			ungrabbedAdvisors = []
+			nextAdvisors = self.createAdvisorSet(advisor)
 
 			if len(nextAdvisors) > 0:
-				for nextAdvisor in nextAdvisors:
-					if useSet:
-						if nextAdvisor not in self.ancestorsSet:
-							ungrabbedAdvisors.append(nextAdvisor)
-
-					else:
-						if nextAdvisor not in self.ancestorsList:
-							ungrabbedAdvisors.append(nextAdvisor)
-
-				self.recursiveAncestors(useSet, ungrabbedAdvisors)
+				self.recursiveAncestors(nextAdvisors.difference(self.ancestorSet))
 
 
-	def numberOfDescendants(self, students):
-		self.recursiveDescendants(True, students)
-
-		return len(self.descendantsSet)
-
-
-	def recursiveDescendants(self, useSet, students):
+	def recursiveDescendants(self, students):
 		for student in students:
-			if useSet:
-				self.descendantsSet.add(student)
+			self.descendantSet.add(student)
 
-			else:
-				self.descendantsList.append(student)
-
-			self.cursor.execute("SELECT student FROM advised WHERE advisor=?", (student,))
-			tempList = self.cursor.fetchall()
-			nextStudents = []
-
-			for row in tempList:
-				nextStudents.append(row["student"])
-
-			ungrabbedStudents = []
+			nextStudents = self.createStudentSet(student)
 
 			if len(nextStudents) > 0:
-				for nextStudent in nextStudents:
-					if useSet:
-						if nextStudent not in self.descendantsSet:
-							ungrabbedStudents.append(nextStudent)
-
-					else:
-						if nextStudent not in self.descendantsList:
-							ungrabbedStudents.append(nextStudent)
-
-				self.recursiveDescendants(useSet, ungrabbedStudents)
+				self.recursiveDescendants(nextStudents.difference(self.descendantSet))
 
 
-	def generatePathOf(self, id):
-		print("Updating path of #", id)
+	# Used by 'update.py'
+	def numberOfDescendants(self, students):
+		self.recursiveDescendants(students)
 
-		self.cursor.execute("SELECT advisor FROM advised WHERE student=?", (id,))
-		tempList = self.cursor.fetchall()
-		nextAdvisors = []
-
-		for row in tempList:
-			nextAdvisors.append(row["advisor"])
-
-		if len(nextAdvisors) > 0:
-			self.recursiveAncestorsPath(nextAdvisors, str(id))
-
-		else:
-			self.paths.append(str(id) + ".")
-			print(str(id) + ".")
-
-		allPaths = self.paths
-		self.paths = []
-
-		return allPaths
+		return len(self.descendantSet)
 
 
 	def lca(self, ids):
@@ -241,42 +205,44 @@ class Searcher:
 			print("There is no LCA!")
 
 		else:
-			lca = id1
-			splitLcaPath = []
-
-			for singleLCA in lca:
-				for path in self.lcaPath:
-					tempPath = path.split(str(singleLCA) + '.')
-
-					if len(tempPath) > 1 and not tempPath[1] == "":
-						splitLcaPath += tempPath[1].split('.')
-
 			for id in ids:
 				self.allAncestors([id])
 				self.allDescendants([id])
 
-			coloredList = []
-			coloredList.append(['red'])
-			coloredList.append(lca)
-			coloredList.append(splitLcaPath)
-			coloredList.append(['black'])
-
-			for singleList in self.completeLCAList:
-				coloredList.append(singleList)
+			lca = id1
+			redLCAset = set()
 
 			for singleLCA in lca:
+				redLCAset.add(singleLCA)
+
+				for path in self.allLCApaths:
+					splitPath = path.split(str(singleLCA) + '.')
+
+					if len(splitPath) > 1 and not splitPath[1] == "":
+						redIDlist = splitPath[1].split('.')
+
+						for redID in redIDlist:
+							try:
+								intID = int(redID)
+
+							except ValueError:
+								continue
+
+							redLCAset.add(intID)
+
 				self.cursor.execute("SELECT name FROM person WHERE pid=?", (singleLCA,))
 				lcaName = self.cursor.fetchone()
 				print("The LCA with", self.maxPrefix, "common ancestors is", singleLCA, ":", lcaName["name"])
 
-			self.saveDotFile("LCA", lca[0], coloredList)
+			blackLCAset = self.LCAset.difference(redLCAset)
+			self.saveDotFile("LCA", lca[0], blackLCAset, redLCAset)
 
 		self.lcaMode = False
 
 
 	def recursiveLCA(self, idSet, id2):
 		path2 = self.generatePathOf(id2)
-		templcaPath = []
+		lcaPath = set()
 		self.maxPrefix = 0
 		lca = []
 
@@ -311,25 +277,42 @@ class Searcher:
 								if int(singlePathID1) not in lca:
 									lca.append(int(singlePathID1))
 
-								templcaPath.append(row1)
-								templcaPath.append(row2)
+								lcaPath.add(row1)
+								lcaPath.add(row2)
 
 							if prefix > self.maxPrefix:
 								lca = []
-								templcaPath = []
+								lcaPath = set()
 
 								lca.append(int(singlePathID1))
-								templcaPath.append(row1)
-								templcaPath.append(row2)
+								lcaPath.add(row1)
+								lcaPath.add(row2)
 								self.maxPrefix = prefix
 
 						else:
 							break
 
-		for row in templcaPath:
-			self.lcaPath.append(row)
+		for row in lcaPath:
+			self.allLCApaths.add(row)
 
 		return lca
+
+
+	def generatePathOf(self, id):
+		print("Updating path of #", id)
+		nextAdvisors = self.createAdvisorSet(id)
+
+		if len(nextAdvisors) > 0:
+			self.recursiveAncestorsPath(nextAdvisors, str(id))
+
+		else:
+			self.paths.add(str(id) + ".")
+			print(str(id) + ".")
+
+		allPaths = self.paths
+		self.paths = set()
+
+		return allPaths
 
 
 	def recursiveAncestorsPath(self, advisors, treeString):
@@ -339,24 +322,21 @@ class Searcher:
 		The paths will be created out of the advised-table. So, this part doesn't need online connectivity.
 		"""
 		for advisor in advisors:
-			self.cursor.execute("SELECT advisor FROM advised WHERE student=?", (advisor,))
-			tempList = self.cursor.fetchall()
-			nextAdvisors = []
-
-			for row in tempList:
-				nextAdvisors.append(row["advisor"])
+			nextAdvisors = self.createAdvisorSet(advisor)
 
 			treeString = str(advisor) + "." + treeString
 
 			if len(nextAdvisors) > 0:
 				self.recursiveAncestorsPath(nextAdvisors, treeString)
+
 				# We have to delete the last node from the string because we are following another path now
 				treeString = treeString.split(".", 1)[1]
 
 			else:
 				# If we reach the highest ancestor, then store this string!
-				self.paths.append(treeString + ".")
+				self.paths.add(treeString + ".")
 				print(treeString + ".")
+
 				# We have to delete the last node from the string because we are following another path now
 				treeString = treeString.split(".", 1)[1]
 
@@ -368,23 +348,20 @@ class Searcher:
 		The paths will be created out of the advised-table. So, this part doesn't need online connectivity.
 		"""
 		for student in students:
-			self.cursor.execute("SELECT student FROM advised WHERE advisor=?", (student,))
-			tempList = self.cursor.fetchall()
-			nextStudents = []
-
-			for row in tempList:
-				nextStudents.append(row["student"])
+			nextStudents = self.createStudentSet(student)
 
 			treeString = treeString + "." + str(student)
 
 			if len(nextStudents) > 0:
 				self.recursiveDescendantsPath(nextStudents, treeString)
+
 				# We have to delete the last node from the string because we are following another path now
 				treeString = treeString.rsplit(".", 1)[0]
 
 			else:
 				# If we reach the highest ancestor, then store this string!
-				self.paths.append(treeString + ".")
+				self.paths.add(treeString + ".")
 				print(treeString + ".")
+
 				# We have to delete the last node from the string because we are following another path now
 				treeString = treeString.rsplit(".", 1)[0]
