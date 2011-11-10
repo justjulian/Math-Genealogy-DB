@@ -33,14 +33,14 @@ class DatabaseConnector:
 		self.cursor = None
 
 
-	def connectToSQLite(self):
+	def connectToSQLite(self, name):
 		"""
 		Connect to the local SQLite-database if not already connected.
 		Create local database if it not already exists.
 		"""
 		if self.connection == None:
 			try:
-				self.connection = sqlite3.connect("MG-DB")
+				self.connection = sqlite3.connect(name)
 
 				# Use sqlite3.Row to enable direct access to the stored data of the table.
 				self.connection.row_factory = sqlite3.Row

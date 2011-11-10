@@ -21,7 +21,6 @@
 
 
 import grab
-import databaseConnection
 import urllib.request, urllib.parse, urllib.error
 import search
 
@@ -32,7 +31,7 @@ class Updater:
 	Class for finding the ID of a mathematician and updating it
 	from the Mathematics Genealogy Project.
 	"""
-	def __init__(self, naive):
+	def __init__(self, connector, naive):
 		self.foundID = False
 		self.foundIDs = []
 		self.naiveMode = naive
@@ -42,8 +41,7 @@ class Updater:
 		self.currentAdvisorsGrab = []
 		self.currentStudentsGrab = set()
 
-		databaseConnector = databaseConnection.DatabaseConnector()
-		connector = databaseConnector.connectToSQLite()
+		self.connector = connector
 		self.connection = connector[0]
 		self.cursor = connector[1]
 
@@ -235,7 +233,7 @@ class Updater:
 					for row in localStudents:
 						storedStudents.add(row["student"])
 
-					searcher = search.Searcher(False, False)
+					searcher = search.Searcher(self.connector, False, False)
 					calculatedNumber = searcher.numberOfDescendants(storedStudents)
 
 					if calculatedNumber == onlineNumber:

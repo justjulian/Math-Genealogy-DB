@@ -21,7 +21,6 @@
 
 
 import visualize
-import databaseConnection
 
 
 
@@ -29,7 +28,7 @@ class Searcher:
 	"""
 	Class for several search methods.
 	"""
-	def __init__(self, filename, details):
+	def __init__(self, connector, filename, details):
 		self.filename = filename
 		self.noDetails = details
 		self.maxPrefix = 0
@@ -42,19 +41,14 @@ class Searcher:
 		self.paths = set()
 		self.allLCApaths = set()
 
-		databaseConnector = databaseConnection.DatabaseConnector()
-		connector = databaseConnector.connectToSQLite()
+		self.connector = connector
 		self.connection = connector[0]
 		self.cursor = connector[1]
 
 
 	def saveDotFile(self, queryName, rootID, blackSet, redSet=None):
-		# Close database connection
-		self.cursor.close()
-		self.connection.close()
-
 		# Create DOT-file
-		visualizer = visualize.Visualizer(self.noDetails)
+		visualizer = visualize.Visualizer(self.connector, self.noDetails)
 		dotFile = visualizer.generateDotFile(blackSet, redSet)
 
 		# Print DOT-file to user defined file
@@ -66,12 +60,6 @@ class Searcher:
 		# Print DOT-file to std-out
 		else:
 			print(dotFile)
-
-		# Create new database connection
-		databaseConnector = databaseConnection.DatabaseConnector()
-		connector = databaseConnector.connectToSQLite()
-		self.connection = connector[0]
-		self.cursor = connector[1]
 
 
 	def createAdvisorSet(self, id):

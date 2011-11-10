@@ -20,17 +20,12 @@
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-import databaseConnection
-
-
 
 class Visualizer:
 	"""
 	Class for generating DOT-files to answer the search queries.
 	"""
-	def __init__(self, details):
-		databaseConnector = databaseConnection.DatabaseConnector()
-		connector = databaseConnector.connectToSQLite()
+	def __init__(self, connector, details):
 		self.connection = connector[0]
 		self.cursor = connector[1]
 

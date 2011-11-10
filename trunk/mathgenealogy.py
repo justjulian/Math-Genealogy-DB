@@ -27,6 +27,7 @@ from optparse import OptionParser
 import string
 import update
 import search
+import databaseConnection
 
 
 
@@ -46,10 +47,10 @@ class Mathgenealogy:
 		self.lca = False
 		self.aa = False
 		self.ad = False
-		self.sp = False
 		self.verbose = False
 		self.writeFilename = None
 		self.noDetails = False
+		self.database = ""
 
 
 	def parseInput(self):
@@ -100,16 +101,15 @@ class Mathgenealogy:
 							   help="Search method: Search for all descendants of one mathematician. INPUT: ID of one \
 							   mathematician")
 
-		self.parser.add_option("-P", "--shortest-path", action="store_true", dest="sp", default=False,
-							   help="Search method: Search for the shortest path between two mathematicians with the \
-							   additional option to include or exclude nodes. INPUT: Two IDs of the mathematicians to \
-							   search for their shortest path. Then IDs of the mathematicians to include to the path. \
-							   Finally IDs of the mathematicians to exclude from the path (enter a zero in front of \
-							   the original ID without space). Every ID separated by spaces.")
 
 		self.parser.add_option("-s", "--save-to-file", dest="filename", metavar="FILE", default=None,
 							   help="Write output to a dot-file [default: stdout]. Only available for search methods, \
 							   not for update methods!")
+
+		self.parser.add_option("-b", "--use-different-database", action="store", type="string", dest="database",
+		                       default="MG-DB",
+							   help="Define the SQLite database name. This database will be created, \
+							   updated or queried.")
 
 
 		self.parser.add_option("-v", "--verbose", action="store_true", dest="verbose", default=False,
@@ -132,10 +132,10 @@ class Mathgenealogy:
 		self.lca = options.lca
 		self.aa = options.aa
 		self.ad = options.ad
-		self.sp = options.sp
 		self.verbose = options.verbose
 		self.writeFilename = options.filename
 		self.noDetails = options.noDetails
+		self.database = options.database
 
 		if options.print_version:
 			print("Math-Genealogy-DB Version 1.0")
@@ -147,7 +147,7 @@ class Mathgenealogy:
 
 		# Check for the correct combination of options
 		if (self.updateByName or self.updateByID or self.forceNaive or self.ancestors or self.descendants) and\
-		   (self.lca or self.aa or self.ad or self.sp or (self.writeFilename is not None)):
+		   (self.lca or self.aa or self.ad or (self.writeFilename is not None)):
 			raise SyntaxError("%s: error: invalid combination of options" % (self.parser.get_prog_name()))
 
 		if self.updateByName and (self.ancestors or self.descendants):
@@ -156,19 +156,16 @@ class Mathgenealogy:
 		if self.updateByName and self.updateByID:
 			raise SyntaxError("%s: error: you can only choose one update method" % (self.parser.get_prog_name()))
 
-		if self.lca and (self.aa or self.ad or self.sp):
+		if self.lca and (self.aa or self.ad):
 			raise SyntaxError("%s: error: you can only choose one search method" % (self.parser.get_prog_name()))
 
-		if self.aa and (self.lca or self.ad or self.sp):
+		if self.aa and (self.lca or self.ad):
 			raise SyntaxError("%s: error: you can only choose one search method" % (self.parser.get_prog_name()))
 
-		if self.ad and (self.aa or self.lca or self.sp):
+		if self.ad and (self.aa or self.lca):
 			raise SyntaxError("%s: error: you can only choose one search method" % (self.parser.get_prog_name()))
 
-		if self.sp and (self.aa or self.ad or self.lca):
-			raise SyntaxError("%s: error: you can only choose one search method" % (self.parser.get_prog_name()))
-
-		if not (self.updateByName or self.updateByID or self.lca or self.aa or self.ad or self.sp):
+		if not (self.updateByName or self.updateByID or self.lca or self.aa or self.ad):
 			raise SyntaxError("%s: error: you have to choose one update method or one search method"
 			% (self.parser.get_prog_name()))
 
@@ -184,7 +181,7 @@ class Mathgenealogy:
 			if len(args) != 1:
 				raise SyntaxError("%s: error: enter only one ID" % (self.parser.get_prog_name()))
 
-		if self.sp or self.lca:
+		if self.lca:
 			if len(args) < 2:
 				raise SyntaxError("%s: error: you have to enter at least two IDs to execute this search method"
 				% (self.parser.get_prog_name()))
@@ -198,23 +195,26 @@ class Mathgenealogy:
 			for arg in args:
 				self.passedIDs.append(int(arg))
 
+		databaseConnector = databaseConnection.DatabaseConnector()
+		connector = databaseConnector.connectToSQLite(self.database)
+
 		# Call the correct function depending on the options which have been passed
 		if self.updateByName:
-			updater = update.Updater(self.forceNaive)
+			updater = update.Updater(connector, self.forceNaive)
 			updater.findID(self.passedName)
 
 		if self.updateByID:
-			updater = update.Updater(self.forceNaive)
+			updater = update.Updater(connector, self.forceNaive)
 			updater.updateByID(self.passedIDs, self.ancestors, self.descendants)
 
 		if self.lca:
-			searcher = search.Searcher(self.writeFilename, self.noDetails)
+			searcher = search.Searcher(connector, self.writeFilename, self.noDetails)
 			searcher.lca(self.passedIDs)
 
 		if self.aa:
-			searcher = search.Searcher(self.writeFilename, self.noDetails)
+			searcher = search.Searcher(connector, self.writeFilename, self.noDetails)
 			searcher.allAncestors(self.passedIDs)
 
 		if self.ad:
-			searcher = search.Searcher(self.writeFilename, self.noDetails)
+			searcher = search.Searcher(connector, self.writeFilename, self.noDetails)
 			searcher.allDescendants(self.passedIDs)
