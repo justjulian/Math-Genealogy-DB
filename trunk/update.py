@@ -21,9 +21,8 @@
 
 
 import grab
-import urllib.request, urllib.parse, urllib.error
-import search
-
+import urllib2
+import urllib
 
 
 class Updater:
@@ -31,10 +30,11 @@ class Updater:
 	Class for finding the ID of a mathematician and updating it
 	from the Mathematics Genealogy Project.
 	"""
-	def __init__(self, connector, naive):
+	def __init__(self, connector, naive, web):
 		self.foundID = False
 		self.foundIDs = []
 		self.naiveMode = naive
+		self.webMode = web
 
 		# The Grabber returns only for the students a set and not for the advisors as the advisors need to be
 		# ordererd to separate different advisor sets
@@ -52,8 +52,8 @@ class Updater:
 		Mathematics Genealogy Project. This ID is needed to run Update-by-ID.
 		"""
 		# Get the raw data of this site. Return an object of class 'http.client.HTTPResponse'
-		page = urllib.request.urlopen("http://genealogy.math.ndsu.nodak.edu/query-prep.php",
-									  urllib.parse.urlencode({"family_name":lastName}).encode())
+		page = urllib2.urlopen("http://genealogy.math.ndsu.nodak.edu/query-prep.php",
+									  urllib.urlencode({"family_name":lastName}).encode("utf-8"))
 
 		# Read the raw data and return an object of class 'bytes' (html-code)
 		pagestr = page.read()
@@ -64,30 +64,58 @@ class Updater:
 		# Split the page string at newline characters to get single lines.
 		psarray = pagestr.split("\n")
 
-		# Iterate through every line of the html-code.
-		for line in psarray:
-			if 'a href=\"id.php?id=' in line:
-				# Store if there are mathematicians with that entered last name.
-				self.foundID = True
+		if self.webMode:
+			lines = iter(psarray)
 
-				# Extract ID of found mathematicians.
-				id = int(line.split('a href=\"id.php?id=')[1].split('\">')[0])
-				self.foundIDs.append(id)
+			# Iterate through every line of the html-code.
+			for line in lines:
+				if 'a href=\"id.php?id=' in line:
+					# Store if there are mathematicians with that entered last name.
+					self.foundID = True
 
-		if self.foundID:
-			# Print every found mathematician and store them in the local database.
-			for id in self.foundIDs:
-				[name, uni, year, advisors, students, dissertation, numberOfDescendants] = self.grabNode(id)
-				print("ID: {}  Name: {}  University: {}  Year: {}".format(id, name, uni[0], year[0]))
-				self.updateByName(id, name, uni, year, advisors, dissertation, numberOfDescendants)
+					# Extract ID of found mathematicians.
+					idAndName = line.split('a href=\"id.php?id=')[1]
+					id = int(idAndName.split('\">')[0])
+					name = grab.Grabber.unescape(idAndName.split('\">')[1].split('</a>')[0].strip())
+
+					line = next(lines)
+
+					uni = grab.Grabber.unescape(line.split('<td>')[1].split('</td>')[0].strip())
+
+					if uni == "":
+						uni = None
+
+					line = next(lines)
+
+					year = grab.Grabber.unescape(line.split('<td>')[1].split('</td>')[0].strip())
+
+					if year == "":
+						year = None
+
+					print(u"{};{};{};{}".format(id, name, uni, year).encode('utf-8'))
 
 		else:
-			print("There is either no mathematician in the online-database with that entered last name or there are too many. \
-				   You can check http://genealogy.math.ndsu.nodak.edu/search.php though and try to find the desired mathematician \
-				   by using more search options. You can then use the ID of this mathematician to run Update-by-ID.")
+			# Iterate through every line of the html-code.
+			for line in psarray:
+				if 'a href=\"id.php?id=' in line:
+					# Store if there are mathematicians with that entered last name.
+					self.foundID = True
 
-		self.cursor.close()
-		self.connection.close()
+					# Extract ID of found mathematicians.
+					id = int(line.split('a href=\"id.php?id=')[1].split('\">')[0])
+					self.foundIDs.append(id)
+
+			if self.foundID:
+				# Print every found mathematician and store them in the local database.
+				for id in self.foundIDs:
+					[name, uni, year, advisors, students, dissertation, numberOfDescendants] = self.grabNode(id)
+					print(u"ID: {}  Name: {}  University: {}  Year: {}".format(id, name, uni[0], year[0]).encode('utf-8'))
+					self.updateByName(id, name, uni, year, advisors, dissertation, numberOfDescendants)
+
+		if not self.foundID:
+			print("There is either no mathematician in the online-database with that entered last name or there are too many. \
+					You can check http://genealogy.math.ndsu.nodak.edu/search.php though and try to find the desired mathematician \
+					by using more search options. You can then use the ID of this mathematician to run Update-by-ID.")
 
 
 	def naiveUpdate(self, id, name, unis, years, advisors, dissertations, numberOfDescendants):
@@ -161,7 +189,7 @@ class Updater:
 			[name, uni, year, advisors, students, dissertation, numberOfDescendants] = grabber.extractNodeInformation()
 
 			if not self.foundID:
-				print("Name: {}  University: {}  Year: {}".format(name, uni[0], year[0]))
+				print(u"Name: {}  University: {}  Year: {}".format(name, uni[0], year[0]).encode('utf-8'))
 
 		except ValueError:
 			# The given id does not exist in the Math Genealogy Project.
@@ -276,9 +304,6 @@ class Updater:
 
 			if descendants:
 				self.recursiveDescendants(students)
-
-		self.cursor.close()
-		self.connection.close()
 
 
 	def deleteRows(self, id):

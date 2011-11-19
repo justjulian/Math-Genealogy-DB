@@ -47,6 +47,7 @@ class Mathgenealogy:
 		self.lca = False
 		self.aa = False
 		self.ad = False
+		self.web = False
 		self.verbose = False
 		self.writeFilename = None
 		self.noDetails = False
@@ -87,6 +88,9 @@ class Mathgenealogy:
 
 		self.parser.add_option("-d", "--with-descendants", action="store_true", dest="descendants", default=False,
 							   help="Retrieve descendants of IDs and include in graph. Only available for update-by-ID!")
+
+		self.parser.add_option("-w", "--web-front-end", action="store_true", dest="web",
+		                       default=False, help="Don't use! Needed for web front-end")
 
 
 		self.parser.add_option("-L", "--least-common-advisor", action="store_true", dest="lca", default=False,
@@ -132,6 +136,7 @@ class Mathgenealogy:
 		self.lca = options.lca
 		self.aa = options.aa
 		self.ad = options.ad
+		self.web = options.web
 		self.verbose = options.verbose
 		self.writeFilename = options.filename
 		self.noDetails = options.noDetails
@@ -157,12 +162,6 @@ class Mathgenealogy:
 			raise SyntaxError("%s: error: you can only choose one update method" % (self.parser.get_prog_name()))
 
 		if self.lca and (self.aa or self.ad):
-			raise SyntaxError("%s: error: you can only choose one search method" % (self.parser.get_prog_name()))
-
-		if self.aa and (self.lca or self.ad):
-			raise SyntaxError("%s: error: you can only choose one search method" % (self.parser.get_prog_name()))
-
-		if self.ad and (self.aa or self.lca):
 			raise SyntaxError("%s: error: you can only choose one search method" % (self.parser.get_prog_name()))
 
 		if not (self.updateByName or self.updateByID or self.lca or self.aa or self.ad):
@@ -200,21 +199,32 @@ class Mathgenealogy:
 
 		# Call the correct function depending on the options which have been passed
 		if self.updateByName:
-			updater = update.Updater(connector, self.forceNaive)
+			updater = update.Updater(connector, self.forceNaive, self.web)
 			updater.findID(self.passedName)
 
 		if self.updateByID:
-			updater = update.Updater(connector, self.forceNaive)
+			updater = update.Updater(connector, self.forceNaive, self.web)
 			updater.updateByID(self.passedIDs, self.ancestors, self.descendants)
 
 		if self.lca:
 			searcher = search.Searcher(connector, self.writeFilename, self.noDetails)
 			searcher.lca(self.passedIDs)
 
-		if self.aa:
+		if self.aa and not self.ad:
 			searcher = search.Searcher(connector, self.writeFilename, self.noDetails)
 			searcher.allAncestors(self.passedIDs)
 
-		if self.ad:
+		if self.ad and not self.aa:
 			searcher = search.Searcher(connector, self.writeFilename, self.noDetails)
 			searcher.allDescendants(self.passedIDs)
+
+		if self.aa and self.ad:
+			searcher = search.Searcher(connector, self.writeFilename, self.noDetails)
+			searcher.allAncestorsDescendants(self.passedIDs)
+
+
+		connection = connector[0]
+		cursor = connector[1]
+
+		cursor.close()
+		connection.close()

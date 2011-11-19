@@ -54,7 +54,7 @@ class Searcher:
 		# Print DOT-file to user defined file
 		if self.filename is not None:
 			query = open(self.filename + str(rootID) + queryName + ".dot", "w")
-			print(dotFile, file=query)
+			query.write(dotFile)
 			query.close()
 
 		# Print DOT-file to std-out
@@ -109,7 +109,9 @@ class Searcher:
 
 			# Create DOT-file
 			else:
-				print("The ancestors of", id, "are", self.ancestorSet)
+				self.ancestorSet.remove(id)
+				print("The", len(self.ancestorSet), "ancestor(s) of", id, "is/are", self.ancestorSet)
+				self.ancestorSet.add(id)
 				self.saveDotFile("All-Ancestors", id, self.ancestorSet)
 
 		# If searching for the LCA, then store this set
@@ -139,7 +141,9 @@ class Searcher:
 
 			# Create DOT-file
 			else:
-				print("The descendants of", id, "are", self.descendantSet)
+				self.descendantSet.remove(id)
+				print("The", len(self.descendantSet), "descendant(s) of", id, "is/are", self.descendantSet)
+				self.descendantSet.add(id)
 				self.saveDotFile("All-Descendants", id, self.descendantSet)
 
 		# If searching for the LCA, then store this set
@@ -147,6 +151,54 @@ class Searcher:
 			self.LCAset = self.LCAset.union(self.descendantSet)
 
 		# Delete set!
+		self.descendantSet = set()
+
+
+	def allAncestorsDescendants(self, id):
+		# 'id' is a list containing one item
+		id = id[0]
+		self.ancestorSet.add(id)
+		self.descendantSet.add(id)
+
+		advisors = self.createAdvisorSet(id)
+
+		# Start grabbing ancestors recursively
+		if len(advisors) > 0:
+			self.recursiveAncestors(advisors)
+
+		students = self.createStudentSet(id)
+
+		# Start grabbing descendants recursively
+		if len(students) > 0:
+			self.recursiveDescendants(students)
+
+		# If there is only the start node in the set, then there are no ancestors
+		if len(self.ancestorSet) < 2:
+			print("There are no ancestors!")
+
+		else:
+			self.ancestorSet.remove(id)
+			print("The", len(self.ancestorSet), "ancestor(s) of", id, "is/are", self.ancestorSet)
+			self.ancestorSet.add(id)
+
+			print("")
+
+		# If there is only the start node in the set, then there are no descendants
+		if len(self.descendantSet) < 2:
+			print("There are no descendants!")
+
+		else:
+			self.descendantSet.remove(id)
+			print("The", len(self.descendantSet), "descendant(s) of", id, "is/are", self.descendantSet)
+			self.descendantSet.add(id)
+
+		# Create DOT-file
+		if len(self.ancestorSet) > 1 or len(self.descendantSet) > 1:
+			AncestorDescendantSet = self.ancestorSet.union(self.descendantSet)
+			self.saveDotFile("All-Ancestors-Descendants", id, AncestorDescendantSet)
+
+		# Delete sets!
+		self.ancestorSet = set()
 		self.descendantSet = set()
 
 
@@ -223,7 +275,13 @@ class Searcher:
 				print("The LCA with", self.maxPrefix, "common ancestors is", singleLCA, ":", lcaName["name"])
 
 			blackLCAset = self.LCAset.difference(redLCAset)
-			self.saveDotFile("LCA", lca[0], blackLCAset, redLCAset)
+
+			rootIDs = "-"
+
+			for id in ids:
+				rootIDs += str(id) + "-"
+
+			self.saveDotFile("LCA", rootIDs, blackLCAset, redLCAset)
 
 		self.lcaMode = False
 

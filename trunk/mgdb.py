@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/python
 
 
 # Copyright (c) 2008, 2009 David Alber

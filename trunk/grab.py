@@ -23,11 +23,10 @@
 # Modified 2011 by Julian Wintermayr
 
 
-import urllib.request, urllib.parse, urllib.error
-import re
-from html.entities import name2codepoint
+import urllib2
 import time
-
+import htmlentitydefs
+import re
 
 
 class Grabber:
@@ -50,13 +49,14 @@ class Grabber:
 		time.sleep(0.4)
 
 
-	def unescape(self, s):
+	@staticmethod
+	def unescape(s):
 		"""
-		Example: "ä" in html-code is displayed as "&auml;" This needs to be converted
-				 back to "ä". That's the purpose of this function.
+		Example: "ae" in html-code is displayed as "&auml;" This needs to be converted
+				 back to "ae". That's the purpose of this function.
 		"""
-		return re.sub('&(%s);' % '|'.join(name2codepoint),
-					  lambda m: chr(name2codepoint[m.group(1)]), s)
+		return re.sub('&(%s);' % '|'.join(htmlentitydefs.name2codepoint),
+					  lambda m: unichr(htmlentitydefs.name2codepoint[m.group(1)]), s)
 
 
 	def getPage(self):
@@ -64,7 +64,7 @@ class Grabber:
 		Grab the page for self.id from the Math Genealogy Project.
 		"""
 		url = 'http://genealogy.math.ndsu.nodak.edu/id.php?id=' + str(self.id)
-		page = urllib.request.urlopen(url)
+		page = urllib2.urlopen(url)
 		self.pagestr = page.read()
 		self.pagestr = self.pagestr.decode('utf-8')
 

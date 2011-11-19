@@ -37,6 +37,7 @@ class Visualizer:
 		self.cursor.execute("SELECT name FROM person WHERE pid=?", (id,))
 		row = self.cursor.fetchone()
 		name = row["name"]
+		name = name.replace("\"","\'")
 
 		# Get dissertation, university and year
 		# Only information of one dissertation will be printed
@@ -51,8 +52,8 @@ class Visualizer:
 			.format(id, name, year, color, name)
 
 		else:
-			nodeStr = "    {} [label=\"{} \\n{} {}\", fontcolor={}, URL=\"http://en.wikipedia.org/wiki/{}\"];"\
-			.format(id, name, uni, year, color, name)
+			nodeStr = u"    {} [label=\"{} \\n{} {}\", fontcolor={}, URL=\"http://en.wikipedia.org/wiki/{}\"];"\
+			.format(id, name, uni, year, color, name).encode('utf-8')
 
 		return nodeStr
 
@@ -108,8 +109,5 @@ class Visualizer:
 		# Now print the connections between the nodes.
 		dotFile += edges
 		dotFile += "\n}\n"
-
-		self.cursor.close()
-		self.connection.close()
 
 		return dotFile
