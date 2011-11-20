@@ -64,7 +64,7 @@ class Searcher:
 
 	def createAdvisorSet(self, id):
 		# Get all advisors
-		self.cursor.execute("SELECT advisor FROM advised WHERE student=?", (id,))
+		self.cursor.execute("SELECT advisor FROM advised, dissertation WHERE student=dID AND author=?", (id,))
 		queryList = self.cursor.fetchall()
 
 		# Store advisors in a set
@@ -78,14 +78,14 @@ class Searcher:
 
 	def createStudentSet(self, id):
 		# Get all students
-		self.cursor.execute("SELECT student FROM advised WHERE advisor=?", (id,))
+		self.cursor.execute("SELECT author FROM advised, dissertation WHERE student=dID AND advisor=?", (id,))
 		queryList = self.cursor.fetchall()
 
 		# Store students in a set
 		students = set()
 
 		for row in queryList:
-			students.add(row["student"])
+			students.add(row["author"])
 
 		return students
 
@@ -110,7 +110,7 @@ class Searcher:
 			# Create DOT-file
 			else:
 				self.ancestorSet.remove(id)
-				print("The", len(self.ancestorSet), "ancestor(s) of", id, "is/are", self.ancestorSet)
+				print("The {} ancestor(s) of {} is/are {}".format(len(self.ancestorSet), id, self.ancestorSet))
 				self.ancestorSet.add(id)
 				self.saveDotFile("All-Ancestors", id, self.ancestorSet)
 
@@ -142,7 +142,7 @@ class Searcher:
 			# Create DOT-file
 			else:
 				self.descendantSet.remove(id)
-				print("The", len(self.descendantSet), "descendant(s) of", id, "is/are", self.descendantSet)
+				print("The {} descendant(s) of {} is/are {}".format(len(self.descendantSet), id, self.descendantSet))
 				self.descendantSet.add(id)
 				self.saveDotFile("All-Descendants", id, self.descendantSet)
 
@@ -178,7 +178,7 @@ class Searcher:
 
 		else:
 			self.ancestorSet.remove(id)
-			print("The", len(self.ancestorSet), "ancestor(s) of", id, "is/are", self.ancestorSet)
+			print("The {} ancestor(s) of {} is/are {}".format(len(self.ancestorSet), id, self.ancestorSet))
 			self.ancestorSet.add(id)
 
 			print("")
@@ -189,7 +189,7 @@ class Searcher:
 
 		else:
 			self.descendantSet.remove(id)
-			print("The", len(self.descendantSet), "descendant(s) of", id, "is/are", self.descendantSet)
+			print("The {} descendant(s) of {} is/are {}".format(len(self.descendantSet), id, self.descendantSet))
 			self.descendantSet.add(id)
 
 		# Create DOT-file
@@ -270,9 +270,9 @@ class Searcher:
 
 							redLCAset.add(intID)
 
-				self.cursor.execute("SELECT name FROM person WHERE pid=?", (singleLCA,))
+				self.cursor.execute("SELECT name FROM person WHERE pID=?", (singleLCA,))
 				lcaName = self.cursor.fetchone()
-				print("The LCA with", self.maxPrefix, "common ancestors is", singleLCA, ":", lcaName["name"])
+				print("The LCA with {} common ancestors is {}: {}".format(self.maxPrefix, singleLCA, lcaName["name"]))
 
 			blackLCAset = self.LCAset.difference(redLCAset)
 
@@ -345,7 +345,7 @@ class Searcher:
 
 
 	def generatePathOf(self, id):
-		print("Updating path of #", id)
+		print("Updating path of #{}".format(id))
 		nextAdvisors = self.createAdvisorSet(id)
 
 		if len(nextAdvisors) > 0:

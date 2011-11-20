@@ -111,7 +111,7 @@ class Mathgenealogy:
 							   not for update methods!")
 
 		self.parser.add_option("-b", "--use-different-database", action="store", type="string", dest="database",
-		                       default="MG-DB",
+		                       default="MGDB",
 							   help="Define the SQLite database name. This database will be created, \
 							   updated or queried.")
 

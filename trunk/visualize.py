@@ -34,14 +34,14 @@ class Visualizer:
 
 	def createNodeStr(self, color, id):
 		# Get name
-		self.cursor.execute("SELECT name FROM person WHERE pid=?", (id,))
+		self.cursor.execute("SELECT name FROM person WHERE pID=?", (id,))
 		row = self.cursor.fetchone()
 		name = row["name"]
 		name = name.replace("\"","\'")
 
 		# Get dissertation, university and year
 		# Only information of one dissertation will be printed
-		self.cursor.execute("SELECT university, year FROM dissertation WHERE did=?", (id,))
+		self.cursor.execute("SELECT university, year FROM dissertation WHERE dID=?", (id,))
 		row = self.cursor.fetchone()
 		uni = row["university"]
 		year = row["year"]
@@ -61,18 +61,18 @@ class Visualizer:
 	def createEdgeStr(self, color, id, blackSet, redSet):
 		# Get relationship and store it to add it at the end of the
 		# DOT-file when exiting this loop.
-		self.cursor.execute("SELECT student FROM advised WHERE advisor=?", (id,))
+		self.cursor.execute("SELECT author FROM advised, dissertation WHERE student=dID AND advisor=?", (id,))
 		students = self.cursor.fetchall()
 
 		edges = ""
 
 		for student in students:
-			if redSet is not None and student["student"] in redSet:
-				edgeStr = "\n    {} -> {} [color={}];".format(id, student["student"], color)
+			if redSet is not None and student["author"] in redSet:
+				edgeStr = "\n    {} -> {} [color={}];".format(id, student["author"], color)
 				edges += edgeStr
 
-			elif blackSet is not None and student["student"] in blackSet:
-				edgeStr = "\n    {} -> {} [color=black];".format(id, student["student"])
+			elif blackSet is not None and student["author"] in blackSet:
+				edgeStr = "\n    {} -> {} [color=black];".format(id, student["author"])
 				edges += edgeStr
 
 		return edges
