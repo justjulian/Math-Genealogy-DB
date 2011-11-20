@@ -23,6 +23,7 @@
 import grab
 import urllib2
 import urllib
+import search
 
 
 class Updater:
@@ -92,7 +93,7 @@ class Updater:
 					if year == "":
 						year = None
 
-					print(u"{};{};{};{}".format(id, name, uni, year).encode('utf-8'))
+					print(u"{};{};{};{}".format(id, name, uni[0], year[0]).encode('utf-8'))
 
 		else:
 			# Iterate through every line of the html-code.
@@ -110,7 +111,7 @@ class Updater:
 				for id in self.foundIDs:
 					[name, uni, year, advisors, students, dissertation, numberOfDescendants] = self.grabNode(id)
 					print(u"ID: {}  Name: {}  University: {}  Year: {}".format(id, name, uni[0], year[0]).encode('utf-8'))
-					self.updateByName(id, name, uni, year, advisors, dissertation, numberOfDescendants)
+					self.insertOrUpdate(id, name, uni, year, advisors, dissertation, numberOfDescendants)
 
 		if not self.foundID:
 			print("There is either no mathematician in the online-database with that entered last name or there are too many. \
@@ -118,16 +119,16 @@ class Updater:
 					by using more search options. You can then use the ID of this mathematician to run Update-by-ID.")
 
 
-	def naiveUpdate(self, id, name, unis, years, advisors, dissertations, numberOfDescendants):
+	def insertOrUpdate(self, id, name, unis, years, advisors, dissertations, numberOfDescendants):
 		"""
 		Take the arguments and update or create the tables mathematicians, advised and dissertation
 		of the local database.
 		Replace existing mathematicians.
 		"""
 		self.cursor.execute("INSERT INTO person VALUES (?, ?, ?)",  (id, name, numberOfDescendants))
+		self.connection.commit()
 
 		advOrder = 0
-		counter = 0
 
 		# Create iterators.
 		iterAdvisor = iter(advisors)
@@ -140,9 +141,9 @@ class Updater:
 			uni = next(iterUni)
 			year = next(iterYear)
 
-			counter += 1
-
-			self.cursor.execute("INSERT INTO dissertation VALUES (?, ?, ?, ?, ?)",  (id, counter, dissertation, uni, year))
+			self.cursor.execute("INSERT INTO dissertation VALUES (NULL, ?, ?, ?, ?)",  (id, dissertation, uni, year))
+			self.connection.commit()
+			did = self.cursor.lastrowid
 
 			for advID in iterAdvisor:
 				# If advisors are separated by 0, then a new set of advisors starts
@@ -153,24 +154,8 @@ class Updater:
 					break
 
 				advOrder += 1
-				self.cursor.execute("INSERT INTO advised VALUES (?, ?, ?, ?)",  (id, counter, advOrder, advID))
-
-		self.connection.commit()
-
-
-	def updateByName(self, id, name, uni, year, advisors, dissertation, numberOfDescendants):
-		"""
-		Update or replace existing entries, depending on the "naive-mode".
-		"""
-		if self.naiveMode:
-			# Replace existing mathematician, delete the corresponding entries in the other tables
-			# and store the new data.
-			self.deleteRows(id)
-			self.naiveUpdate(id, name, uni, year, advisors, dissertation, numberOfDescendants)
-
-		else:
-			# Replace existing mathematician and update the other tables but don't delete anything.
-			self.naiveUpdate(id, name, uni, year, advisors, dissertation, numberOfDescendants)
+				self.cursor.execute("INSERT INTO advised VALUES (?, ?, ?)",  (did, advOrder, advID))
+				self.connection.commit()
 
 
 	def grabNode(self, id):
@@ -184,7 +169,7 @@ class Updater:
 			# foundID indicates that the program runs in Update-by-Name mode. Following output
 			# is disturbing in this mode.
 			if not self.foundID:
-				print("\nGrabbing record #", id, ":")
+				print("\nGrabbing record #{}:".format(id))
 
 			[name, uni, year, advisors, students, dissertation, numberOfDescendants] = grabber.extractNodeInformation()
 
@@ -210,12 +195,9 @@ class Updater:
 
 			[name, uni, year, nextAdvisors, nextStudents, dissertation, numberOfDescendants] = self.grabNode(advisor)
 			self.currentAdvisorsGrab.append(advisor)
-			self.naiveUpdate(advisor, name, uni, year, nextAdvisors, dissertation, numberOfDescendants)
+			self.insertOrUpdate(advisor, name, uni, year, nextAdvisors, dissertation, numberOfDescendants)
 
 			# Smart update not possible for ancestors as the number of all ancestors isn't stored online.
-
-			if self.naiveMode:
-				self.deleteRows(advisor)
 
 			ungrabbedAdvisors = []
 
@@ -239,47 +221,46 @@ class Updater:
 			# Compare online stored number of descendants with calculated number of descendants
 			# given by the advised-table.
 			# If numbers are equal, no mathematician has been added and no update is needed.
-			self.cursor.execute("SELECT student FROM advised WHERE advisor=?", (student,))
+			self.cursor.execute("SELECT author FROM advised, dissertation WHERE student=dID AND advisor=?", (student,))
 			localStudents = self.cursor.fetchall()
 
 			# Update before comparing numbers because the comparing checks only if the
 			# descendants are in the database and not if the current mathematician is in it.
-			self.naiveUpdate(student, name, uni, year, nextAdvisors, dissertation, numberOfDescendants)
+			self.insertOrUpdate(student, name, uni, year, nextAdvisors, dissertation, numberOfDescendants)
 
-			if self.naiveMode:
-				self.deleteRows(student)
-
-			else:
+			if not self.naiveMode:
 				# Can't make a function out of this block because of the continue statement
 				onlineNumber = numberOfDescendants
 
-				print("Online descendants =", onlineNumber)
+				print("Online descendants = {}".format(onlineNumber))
 
 				if len(localStudents) > 0:
 					storedStudents = set()
 
 					for row in localStudents:
-						storedStudents.add(row["student"])
+						storedStudents.add(row["author"])
 
 					searcher = search.Searcher(self.connector, False, False)
 					calculatedNumber = searcher.numberOfDescendants(storedStudents)
 
 					if calculatedNumber == onlineNumber:
-						print("In local database =", calculatedNumber)
+						print("In local database = {}".format(calculatedNumber))
 						print("Skip branch!")
 						continue
 
 					else:
-						print("In local database >=", calculatedNumber)
+						print("In local database >= {}".format(calculatedNumber))
 
 					if calculatedNumber > onlineNumber:
 						print("Student(s) online deleted! Delete them in local database and grab this branch again.")
 
 						for delStudent in storedStudents:
-							self.deleteRows(delStudent)
+							self.cursor.execute("DELETE FROM dissertation WHERE author=?", (delStudent,))
+							# TRIGGER and CASCADE statements will delete the entries in the other tables
+							self.connection.commit()
 
 				elif len(localStudents) == 0 and onlineNumber < 2:
-					print("In local database =", 0)
+					print("In local database = 0")
 
 				else:
 					print("In local database: N/A")
@@ -293,22 +274,11 @@ class Updater:
 		Grab the given ID(s) and grab their ancestors and/or descendants and update their paths.
 		"""
 		for id in ids:
-			if self.naiveMode:
-				self.deleteRows(id)
-
 			[name, uni, year, advisors, students, dissertation, numberOfDescendants] = self.grabNode(id)
-			self.naiveUpdate(id, name, uni, year, advisors, dissertation, numberOfDescendants)
+			self.insertOrUpdate(id, name, uni, year, advisors, dissertation, numberOfDescendants)
 
 			if ancestors:
 				self.recursiveAncestors(advisors)
 
 			if descendants:
 				self.recursiveDescendants(students)
-
-
-	def deleteRows(self, id):
-		self.cursor.execute("DELETE FROM person WHERE pid=?", (id,))
-		self.cursor.execute("DELETE FROM advised WHERE student=?", (id,))
-		self.cursor.execute("DELETE FROM dissertation WHERE did=?", (id,))
-
-		self.connection.commit()

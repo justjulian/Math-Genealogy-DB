@@ -46,14 +46,28 @@ class DatabaseConnector:
 				self.connection.row_factory = sqlite3.Row
 				self.cursor = self.connection.cursor()
 
-				self.cursor.execute("CREATE TABLE IF NOT EXISTS person \
-									(pid INTEGER PRIMARY KEY ASC ON CONFLICT IGNORE, name TEXT, descendants INTEGER)")
-				self.cursor.execute("CREATE TABLE IF NOT EXISTS advised \
-									(student INTEGER, dissertationNumber INTEGER, advisorOrder INTEGER, advisor INTEGER, \
-									UNIQUE (student, dissertationNumber, advisor) ON CONFLICT IGNORE)")
-				self.cursor.execute("CREATE TABLE IF NOT EXISTS dissertation \
-									(did INTEGER, number INTEGER, title TEXT, university TEXT, year TEXT, \
-									UNIQUE (did, number) ON CONFLICT IGNORE)")
+				self.cursor.execute("CREATE TABLE IF NOT EXISTS person (\
+									pID INTEGER PRIMARY KEY ON CONFLICT REPLACE, \
+									name VARCHAR(255), \
+									onlineDescendants INTEGER)")
+
+				self.cursor.execute("CREATE TABLE IF NOT EXISTS dissertation (\
+									dID INTEGER PRIMARY KEY ON CONFLICT REPLACE AUTOINCREMENT, \
+									author INTEGER REFERENCES person ON DELETE SET NULL ON UPDATE CASCADE, \
+									title VARCHAR(255), \
+									university VARCHAR(255), \
+									year VARCHAR(255))")
+
+				self.cursor.execute("CREATE TABLE IF NOT EXISTS advised (\
+									student INTEGER REFERENCES dissertation ON DELETE CASCADE ON UPDATE CASCADE, \
+									advisorOrder INTEGER CHECK (advisorOrder > 0), \
+					                advisor INTEGER REFERENCES person ON DELETE CASCADE ON UPDATE CASCADE, \
+									PRIMARY KEY (student, advisor) ON CONFLICT REPLACE)")
+
+				self.cursor.execute("CREATE TRIGGER IF NOT EXISTS delPerson AFTER DELETE ON dissertation FOR EACH ROW \
+									BEGIN \
+										DELETE FROM person WHERE OLD.author = pID; \
+									END")
 
 				self.connection.commit()
 
