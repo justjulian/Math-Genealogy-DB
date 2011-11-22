@@ -48,11 +48,11 @@ class Visualizer:
 
 		# Merge everything to a string and add to DOT-file
 		if self.noDetails:
-			nodeStr = "    {} [label=\"{} ({})\", fontcolor={}, URL=\"http://en.wikipedia.org/wiki/{}\"];"\
-			.format(id, name, year, color, name)
+			nodeStr = u"    {} [label=\"{} ({})\", fontcolor={}, URL=\"http://www.google.com/#q={}\"];"\
+			.format(id, name, year, color, name).encode('utf-8')
 
 		else:
-			nodeStr = u"    {} [label=\"{} \\n{} {}\", fontcolor={}, URL=\"http://en.wikipedia.org/wiki/{}\"];"\
+			nodeStr = u"    {} [label=\"{} \\n{} {}\", fontcolor={}, URL=\"http://www.google.com/#q={}\"];"\
 			.format(id, name, uni, year, color, name).encode('utf-8')
 
 		return nodeStr
