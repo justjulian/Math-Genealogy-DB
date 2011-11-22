@@ -32,6 +32,7 @@ class Updater:
 	from the Mathematics Genealogy Project.
 	"""
 	def __init__(self, connector, naive, web):
+		self.pagestr = None
 		self.foundID = False
 		self.foundIDs = []
 		self.naiveMode = naive
@@ -47,23 +48,31 @@ class Updater:
 		self.cursor = connector[1]
 
 
+	def getSearchPage(self, lastName):
+		try:
+			# Get the raw data of this site. Return an object of class 'http.client.HTTPResponse'
+			page = urllib2.urlopen("http://genealogy.math.ndsu.nodak.edu/query-prep.php",
+									urllib.urlencode({"family_name":lastName}).encode("utf-8"))
+
+			# Read the raw data and return an object of class 'bytes' (html-code)
+			self.pagestr = page.read()
+
+			# Convert bytes-string to readable UTF-8 html-code of class 'str'
+			self.pagestr = self.pagestr.decode("utf-8")
+
+		except urllib2.URLError:
+			self.getSearchPage(lastName)
+
+
 	def findID(self, lastName):
 		"""
 		Find the corresponding ID of a mathematician listed in the
 		Mathematics Genealogy Project. This ID is needed to run Update-by-ID.
 		"""
-		# Get the raw data of this site. Return an object of class 'http.client.HTTPResponse'
-		page = urllib2.urlopen("http://genealogy.math.ndsu.nodak.edu/query-prep.php",
-									  urllib.urlencode({"family_name":lastName}).encode("utf-8"))
-
-		# Read the raw data and return an object of class 'bytes' (html-code)
-		pagestr = page.read()
-
-		# Convert bytes-string to readable UTF-8 html-code of class 'str'
-		pagestr = pagestr.decode("utf-8")
+		self.getSearchPage(lastName)
 
 		# Split the page string at newline characters to get single lines.
-		psarray = pagestr.split("\n")
+		psarray = self.pagestr.split("\n")
 
 		if self.webMode:
 			lines = iter(psarray)

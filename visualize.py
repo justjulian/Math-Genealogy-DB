@@ -34,7 +34,6 @@ class Visualizer:
 
 	def createNodeStr(self, color, id):
 		# Get name
-		print(id)
 		self.cursor.execute("SELECT name FROM person WHERE pID=?", (id,))
 		row = self.cursor.fetchone()
 		name = row["name"]
