@@ -180,6 +180,9 @@ class Updater:
 			# The given id does not exist in the Math Genealogy Project.
 			raise
 
+		except IndexError:
+			return self.grabNode(id)
+
 		return [name, uni, year, advisors, students, dissertation, numberOfDescendants]
 
 
