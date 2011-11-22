@@ -46,7 +46,7 @@ class Grabber:
 		self.descendants = set()
 
 		# Break to avoid the risk of being blocked.
-		time.sleep(0.4)
+		time.sleep(0.5)
 
 
 	@staticmethod
@@ -63,10 +63,14 @@ class Grabber:
 		"""
 		Grab the page for self.id from the Math Genealogy Project.
 		"""
-		url = 'http://genealogy.math.ndsu.nodak.edu/id.php?id=' + str(self.id)
-		page = urllib2.urlopen(url)
-		self.pagestr = page.read()
-		self.pagestr = self.pagestr.decode('utf-8')
+		try:
+			url = 'http://genealogy.math.ndsu.nodak.edu/id.php?id=' + str(self.id)
+			page = urllib2.urlopen(url)
+			self.pagestr = page.read()
+			self.pagestr = self.pagestr.decode('utf-8')
+
+		except urllib2.URLError:
+			self.getPage()
 
 
 	def extractNodeInformation(self):
