@@ -102,7 +102,7 @@ class Updater:
 					if year == "":
 						year = None
 
-					print(u"{};{};{};{}".format(id, name, uni[0], year[0]).encode('utf-8'))
+					print(u"{};{};{};{}".format(id, name, uni, year).encode('utf-8'))
 
 		else:
 			# Iterate through every line of the html-code.
