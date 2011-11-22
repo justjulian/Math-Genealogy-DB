@@ -34,6 +34,7 @@ class Visualizer:
 
 	def createNodeStr(self, color, id):
 		# Get name
+		print(id)
 		self.cursor.execute("SELECT name FROM person WHERE pID=?", (id,))
 		row = self.cursor.fetchone()
 		name = row["name"]
@@ -41,7 +42,7 @@ class Visualizer:
 
 		# Get dissertation, university and year
 		# Only information of one dissertation will be printed
-		self.cursor.execute("SELECT university, year FROM dissertation WHERE dID=?", (id,))
+		self.cursor.execute("SELECT university, year FROM dissertation WHERE author=?", (id,))
 		row = self.cursor.fetchone()
 		uni = row["university"]
 		year = row["year"]

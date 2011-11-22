@@ -141,7 +141,17 @@ class Updater:
 			uni = next(iterUni)
 			year = next(iterYear)
 
-			self.cursor.execute("INSERT INTO dissertation VALUES (NULL, ?, ?, ?, ?)",  (id, dissertation, uni, year))
+			self.cursor.execute("SELECT dID FROM dissertation WHERE author=? AND year=?", (id, year))
+			row = self.cursor.fetchone()
+
+			# Replace row if dissertation already exists and do not create a new unique dissertation-ID
+			if not row == None:
+				did = row["dID"]
+				
+			else:
+				did = None
+			
+			self.cursor.execute("INSERT INTO dissertation VALUES (?, ?, ?, ?, ?)", (did, id, dissertation, uni, year))
 			self.connection.commit()
 			did = self.cursor.lastrowid
 
