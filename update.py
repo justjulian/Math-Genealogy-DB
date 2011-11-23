@@ -61,6 +61,7 @@ class Updater:
 			self.pagestr = self.pagestr.decode("utf-8")
 
 		except urllib2.URLError:
+			print("URLError: Try to get page again.")
 			self.getSearchPage(lastName)
 
 
@@ -134,6 +135,9 @@ class Updater:
 		of the local database.
 		Replace existing mathematicians.
 		"""
+		self.cursor.execute("DELETE FROM dissertation WHERE author=?", (id,))
+		self.connection.commit()
+
 		self.cursor.execute("INSERT INTO person VALUES (?, ?, ?)",  (id, name, numberOfDescendants))
 		self.connection.commit()
 
@@ -150,17 +154,7 @@ class Updater:
 			uni = next(iterUni)
 			year = next(iterYear)
 
-			self.cursor.execute("SELECT dID FROM dissertation WHERE author=? AND year=?", (id, year))
-			row = self.cursor.fetchone()
-
-			# Replace row if dissertation already exists and do not create a new unique dissertation-ID
-			if not row == None:
-				did = row["dID"]
-				
-			else:
-				did = None
-			
-			self.cursor.execute("INSERT INTO dissertation VALUES (?, ?, ?, ?, ?)", (did, id, dissertation, uni, year))
+			self.cursor.execute("INSERT INTO dissertation VALUES (NULL, ?, ?, ?, ?)", (id, dissertation, uni, year))
 			self.connection.commit()
 			did = self.cursor.lastrowid
 
@@ -200,6 +194,7 @@ class Updater:
 			raise
 
 		except IndexError:
+			print("Index Error: Grab again.")
 			return self.grabNode(id)
 
 		return [name, uni, year, advisors, students, dissertation, numberOfDescendants]

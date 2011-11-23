@@ -25,8 +25,7 @@
 
 import urllib2
 import time
-import htmlentitydefs
-import re
+import HTMLParser
 
 
 class Grabber:
@@ -46,43 +45,18 @@ class Grabber:
 		self.descendants = set()
 
 		# Break to avoid the risk of being blocked.
-		time.sleep(0.5)
+		#time.sleep(0.5)
 
 
-	##
-	# Removes HTML or XML character references and entities from a text string.
-	# Source: http://effbot.org/zone/re-sub.htm#unescape-html
-	#
-	# @param text The HTML (or XML) source text.
-	# @return The plain text, as a Unicode string, if necessary.
 	@staticmethod
-	def unescape(text):
+	def unescape(s):
 		"""
 		Removes HTML or XML character references and entities from a text string.
-		Source: http://effbot.org/zone/re-sub.htm#unescape-html
-
-		@param text The HTML (or XML) source text.
-		@return The plain text, as a Unicode string, if necessary.
 		"""
-		def fixup(m):
-			text = m.group(0)
-			if text[:2] == "&#":
-				# character reference
-				try:
-					if text[:3] == "&#x":
-						return unichr(int(text[3:-1], 16))
-					else:
-						return unichr(int(text[2:-1]))
-				except ValueError:
-					pass
-			else:
-				# named entity
-				try:
-					text = unichr(htmlentitydefs.name2codepoint[text[1:-1]])
-				except KeyError:
-					pass
-			return text # leave as is
-		return re.sub("&#?\w+;", fixup, text)
+		p = HTMLParser.HTMLParser()
+		s = p.unescape(s)
+
+		return s
 
 
 	def getPage(self):
@@ -96,6 +70,7 @@ class Grabber:
 			self.pagestr = self.pagestr.decode('utf-8')
 
 		except urllib2.URLError:
+			print("URLError: Try to get page again.")
 			self.getPage()
 
 
@@ -156,24 +131,19 @@ class Grabber:
 					self.dissertation[len(self.dissertation)-1] = None
 
 			# Get all advisors
-			if 'Advisor' in line:
+			if '<p style=\"text-align: center; line-height: 2.75ex\">' in line:
 				advisorLine = line
 
 				# Mark next set of advisors
 				if (len(self.institution) > 1) and ('a href=\"id.php?id=' in line):
 					self.advisors.append(0)
 
-				while 'Advisor' in advisorLine:
-					if 'a href=\"id.php?id=' in line:
-						# Extract link to advisor page.
-						advisor_id = int(advisorLine.split('a href=\"id.php?id=')[1].split('\">')[0])
-						self.advisors.append(advisor_id)
-						# Split at advisor_id is unstable as advisorLine contains also numbers.
-						advisorLine = advisorLine.split("id=" + str(advisor_id))[1]
-					else:
-						# We are done. Adjust string to break the loop.
-						# (Without this records with no advisor enter an infinite loop.)
-						advisorLine = ""
+				while 'a href=\"id.php?id=' in advisorLine:
+					# Extract link to advisor page.
+					advisor_id = int(advisorLine.split('a href=\"id.php?id=')[1].split('\">')[0])
+					self.advisors.append(advisor_id)
+					# Split at advisor_id is unstable as advisorLine contains also numbers.
+					advisorLine = advisorLine.split("id=" + str(advisor_id))[1]
 
 			# Get students
 			if '<tr ' in line:

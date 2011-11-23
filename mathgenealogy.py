@@ -176,9 +176,17 @@ class Mathgenealogy:
 						raise SyntaxError("%s: error: all arguments have to be numbers" % (self.parser.get_prog_name()))
 
 		# Check for the correct number of arguments
-		if self.updateByName or self.updateByID or self.aa or self.ad:
+		if self.aa or self.ad:
 			if len(args) != 1:
 				raise SyntaxError("%s: error: enter only one ID" % (self.parser.get_prog_name()))
+
+		if self.updateByName:
+			if len(args) != 1:
+				raise SyntaxError("%s: error: enter only one Name" % (self.parser.get_prog_name()))
+
+		if self.updateByID:
+			if len(args) < 1:
+				raise SyntaxError("%s: error: you have to enter at least one ID" % (self.parser.get_prog_name()))
 
 		if self.lca:
 			if len(args) < 2:
