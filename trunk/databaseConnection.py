@@ -54,8 +54,8 @@ class DatabaseConnector:
 				self.cursor.execute("CREATE TABLE IF NOT EXISTS dissertation (\
 									dID INTEGER PRIMARY KEY ON CONFLICT REPLACE AUTOINCREMENT, \
 									author INTEGER REFERENCES person ON DELETE SET NULL ON UPDATE CASCADE, \
-									title VARCHAR(255), \
-									university VARCHAR(255), \
+									title TEXT, \
+									university TEXT, \
 									year VARCHAR(255))")
 
 				self.cursor.execute("CREATE TABLE IF NOT EXISTS advised (\
