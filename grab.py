@@ -45,7 +45,7 @@ class Grabber:
 		self.descendants = set()
 
 		# Break to avoid the risk of being blocked.
-		#time.sleep(0.5)
+		time.sleep(0.5)
 
 
 	@staticmethod
@@ -91,8 +91,7 @@ class Grabber:
 		# Split the page string at newline characters.
 		psarray = self.pagestr.split('\n')
 
-		while psarray[0].find("You have specified an ID that does not exist in the database.\
-							  Please back up and try again.") > -1:
+		while 'You have specified an ID that does not exist in the database' in psarray[0]:
 			errorCounter += 1
 			time.sleep(5)
 			self.getPage()
