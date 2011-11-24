@@ -145,7 +145,7 @@ class Grabber:
 					advisorLine = advisorLine.split("id=" + str(advisor_id))[1]
 
 			# Get students
-			if '<tr ' in line:
+			if '<td><a href=\"id.php?id=' in line:
 				descendant_id = int(line.split('a href=\"id.php?id=')[1].split('\">')[0])
 				self.descendants.add(descendant_id)
 
