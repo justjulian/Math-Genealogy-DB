@@ -235,52 +235,12 @@ class Updater:
 			[name, uni, year, nextAdvisors, nextStudents, dissertation, numberOfDescendants] = self.grabNode(student)
 			self.currentStudentsGrab.add(student)
 
-			# Compare online stored number of descendants with calculated number of descendants
-			# given by the advised-table.
-			# If numbers are equal, no mathematician has been added and no update is needed.
-			self.cursor.execute("SELECT author FROM advised, dissertation WHERE student=dID AND advisor=?", (student,))
-			localStudents = self.cursor.fetchall()
-
 			# Update before comparing numbers because the comparing checks only if the
 			# descendants are in the database and not if the current mathematician is in it.
 			self.insertOrUpdate(student, name, uni, year, nextAdvisors, dissertation, numberOfDescendants)
 
-			if not self.naiveMode:
-				# Can't make a function out of this block because of the continue statement
-				onlineNumber = numberOfDescendants
-
-				print("Online descendants = {}".format(onlineNumber))
-
-				if len(localStudents) > 0:
-					storedStudents = set()
-
-					for row in localStudents:
-						storedStudents.add(row["author"])
-
-					searcher = search.Searcher(self.connector, False, False)
-					calculatedNumber = searcher.numberOfDescendants(storedStudents)
-
-					if calculatedNumber == onlineNumber:
-						print("In local database = {}".format(calculatedNumber))
-						print("Skip branch!")
-						continue
-
-					else:
-						print("In local database >= {}".format(calculatedNumber))
-
-					if calculatedNumber > onlineNumber:
-						print("Student(s) online deleted! Delete them in local database and grab this branch again.")
-
-						for delStudent in storedStudents:
-							self.cursor.execute("DELETE FROM dissertation WHERE author=?", (delStudent,))
-							# TRIGGER and CASCADE statements will delete the entries in the other tables
-							self.connection.commit()
-
-				elif len(localStudents) == 0 and onlineNumber < 2:
-					print("In local database = 0")
-
-				else:
-					print("In local database: N/A")
+			if not self.naiveMode and self.smartUpdate(student, numberOfDescendants):
+				continue
 
 			if len(nextStudents) > 0:
 				self.recursiveDescendants(nextStudents.difference(self.currentStudentsGrab))
@@ -298,4 +258,53 @@ class Updater:
 				self.recursiveAncestors(advisors)
 
 			if descendants:
+				if not self.naiveMode and self.smartUpdate(id, numberOfDescendants):
+					continue
+
 				self.recursiveDescendants(students)
+
+
+	def smartUpdate(self, id, onlineNumber):
+		"""
+		Compare online stored number of descendants with calculated number of descendants
+		given by the advised-table.
+		If numbers are equal, no mathematician has been added and no update is needed.
+		"""
+		self.cursor.execute("SELECT author FROM advised, dissertation WHERE student=dID AND advisor=?", (id,))
+		localStudents = self.cursor.fetchall()
+
+		print("Online descendants = {}".format(onlineNumber))
+
+		if len(localStudents) > 0:
+			storedStudents = set()
+
+			for row in localStudents:
+				storedStudents.add(row["author"])
+
+			searcher = search.Searcher(self.connector, False, False)
+			calculatedNumber = searcher.numberOfDescendants(storedStudents)
+
+			if calculatedNumber == onlineNumber:
+				print("In local database = {}".format(calculatedNumber))
+				print("Skip branch!")
+
+				return True
+
+			else:
+				print("In local database >= {}".format(calculatedNumber))
+
+			if calculatedNumber > onlineNumber:
+				print("Student(s) online deleted! Delete them in local database and grab this branch again.")
+
+				for delStudent in storedStudents:
+					self.cursor.execute("DELETE FROM dissertation WHERE author=?", (delStudent,))
+					# TRIGGER and CASCADE statements will delete the entries in the other tables
+					self.connection.commit()
+
+		elif len(localStudents) == 0 and onlineNumber < 2:
+			print("In local database = 0")
+
+		else:
+			print("In local database: N/A")
+
+		return False
