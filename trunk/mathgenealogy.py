@@ -28,6 +28,7 @@ import string
 import update
 import search
 import databaseConnection
+import intervalEncoding
 
 
 
@@ -45,6 +46,7 @@ class Mathgenealogy:
 		self.ancestors = False
 		self.descendants = False
 		self.lca = False
+		self.ie = False
 		self.aa = False
 		self.ad = False
 		self.web = False
@@ -105,6 +107,9 @@ class Mathgenealogy:
 							   help="Search method: Search for all descendants of one mathematician. INPUT: ID of one \
 							   mathematician")
 
+		self.parser.add_option("-T", "--use-interval-encoding", action="store_true", dest="ie", default=False,
+							   help="Use interval encoding to compute the LCSA. Works only together with '-L'")
+
 
 		self.parser.add_option("-s", "--save-to-file", dest="filename", metavar="FILE", default=None,
 							   help="Write output to a dot-file [default: stdout]. Only available for search methods, \
@@ -134,6 +139,7 @@ class Mathgenealogy:
 		self.ancestors = options.ancestors
 		self.descendants = options.descendants
 		self.lca = options.lca
+		self.ie = options.ie
 		self.aa = options.aa
 		self.ad = options.ad
 		self.web = options.web
@@ -215,8 +221,13 @@ class Mathgenealogy:
 			updater.updateByID(self.passedIDs, self.ancestors, self.descendants)
 
 		if self.lca:
-			searcher = search.Searcher(connector, self.writeFilename, self.noDetails)
-			searcher.lca(self.passedIDs)
+			if self.ie:
+				searcher = intervalEncoding(connector)
+				searcher.mainfun()
+
+			else:
+				searcher = search.Searcher(connector, self.writeFilename, self.noDetails)
+				searcher.lca(self.passedIDs)
 
 		if self.aa and not self.ad:
 			searcher = search.Searcher(connector, self.writeFilename, self.noDetails)
