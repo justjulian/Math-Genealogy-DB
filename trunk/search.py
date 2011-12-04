@@ -272,7 +272,7 @@ class Searcher:
 
 				self.cursor.execute("SELECT name FROM person WHERE pID=?", (singleLCA,))
 				lcaName = self.cursor.fetchone()
-				print("The LCA with {} common ancestors is {}: {}".format(self.maxPrefix, singleLCA, lcaName["name"]))
+				print("The LCA with {} common ancestors is {}: {}".format(self.maxPrefix, singleLCA, lcaName["name"]).encode('utf-8'))
 
 			blackLCAset = self.LCAset.difference(redLCAset)
 
@@ -345,7 +345,7 @@ class Searcher:
 
 
 	def generatePathOf(self, id):
-		print("Updating path of #{}".format(id))
+		print("Generating paths of #{}".format(id))
 		nextAdvisors = self.createAdvisorSet(id)
 
 		if len(nextAdvisors) > 0:
@@ -363,9 +363,7 @@ class Searcher:
 
 	def recursiveAncestorsPath(self, advisors, treeString):
 		"""
-		Create all ancestors paths for the requested ID. Same IDs will be grabbed several times
-		to ensure that all paths will be found.
-		The paths will be created out of the advised-table. So, this part doesn't need online connectivity.
+		Create all ancestors paths for the requested ID.
 		"""
 		for advisor in advisors:
 			nextAdvisors = self.createAdvisorSet(advisor)
@@ -387,11 +385,10 @@ class Searcher:
 				treeString = treeString.split(".", 1)[1]
 
 
+	# Function not used yet!
 	def recursiveDescendantsPath(self, students, treeString):
 		"""
-		Create all descendants paths for the requested ID. Same IDs will be grabbed several times
-		to ensure that all paths will be found.
-		The paths will be created out of the advised-table. So, this part doesn't need online connectivity.
+		Create all descendants paths for the requested ID.
 		"""
 		for student in students:
 			nextStudents = self.createStudentSet(student)

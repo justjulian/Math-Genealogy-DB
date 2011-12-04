@@ -1,4 +1,4 @@
-# Copyright (c) 2008, 2009 David Alber
+# Copyright (c) 2011 Julian Wintermayr
 # 
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -18,9 +18,7 @@
 # LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-#
-#
-# Modified 2011 by Julian Wintermayr
+
 
 
 from optparse import OptionParser
@@ -50,7 +48,6 @@ class Mathgenealogy:
 		self.aa = False
 		self.ad = False
 		self.web = False
-		self.verbose = False
 		self.writeFilename = None
 		self.noDetails = False
 		self.database = ""
@@ -71,8 +68,8 @@ class Mathgenealogy:
 									don't need online access for search queries.")
 
 		self.parser.add_option("-i", "--update-by-ID", action="store_true", dest="updateByID", default=False,
-							   help="Update method: Update the local database entries of the entered ID (and of the \
-							   descendants and/or ancestors). INPUT: one ID")
+							   help="Update method: Update the local database entries of the entered ID(s) (and of the \
+							   descendants and/or ancestors). INPUT: ID(s)")
 
 		self.parser.add_option("-n", "--update-by-name", action="store_true", dest="updateByName", default=False,
 							   help="Update method: Find the corresponding ID in the online database of a \
@@ -81,9 +78,9 @@ class Mathgenealogy:
 
 		self.parser.add_option("-f", "--force", action="store_true", dest="forceNaive", default=False,
 							   help="Force the tool to use naive update logic, which downloads all records of every \
-							   mathematician you want to update without looking for any changes and stores every \
-							   entry in the local database (replaces existing ones). Only available for update \
-							   methods,not for search methods!")
+							   mathematician you want to update without comparing the online number of descendants \
+							   with the stored local one and stores every entry in the local database (replaces \
+							   existing ones). Only available for update methods, not for search methods!")
 
 		self.parser.add_option("-a", "--with-ancestors", action="store_true", dest="ancestors", default=False,
 							   help="Retrieve ancestors of IDs and include in graph. Only available for update-by-ID!")
@@ -108,7 +105,7 @@ class Mathgenealogy:
 							   mathematician")
 
 		self.parser.add_option("-T", "--use-interval-encoding", action="store_true", dest="ie", default=False,
-							   help="Use interval encoding to compute the LCSA. Works only together with '-L'")
+							   help="Use interval encoding to compute the LSCA. Works only together with '-L'")
 
 
 		self.parser.add_option("-s", "--save-to-file", dest="filename", metavar="FILE", default=None,
@@ -117,12 +114,8 @@ class Mathgenealogy:
 
 		self.parser.add_option("-b", "--use-different-database", action="store", type="string", dest="database",
 		                       default="MGDB",
-							   help="Define the SQLite database name. This database will be created, \
-							   updated or queried.")
-
-
-		self.parser.add_option("-v", "--verbose", action="store_true", dest="verbose", default=False,
-							   help="Print update messages and database messages.")
+							   help="Define the SQLite database name and/or path. This database will be created, \
+							   updated and/or queried.")
 
 		self.parser.add_option("-u", "--no-details", action="store_true", dest="noDetails", default=False,
 							   help="Don't add university for each mathematician to the DOT-file.")
@@ -143,7 +136,6 @@ class Mathgenealogy:
 		self.aa = options.aa
 		self.ad = options.ad
 		self.web = options.web
-		self.verbose = options.verbose
 		self.writeFilename = options.filename
 		self.noDetails = options.noDetails
 		self.database = options.database

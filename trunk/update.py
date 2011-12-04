@@ -28,8 +28,9 @@ import search
 
 class Updater:
 	"""
-	Class for finding the ID of a mathematician and updating it
-	from the Mathematics Genealogy Project.
+	Class for updating the local database from the Mathematics Genealogy Project.
+	Update-by-ID and Update-by-name implemented.
+	Can find the corresponding ID to a last name.
 	"""
 	def __init__(self, connector, naive, web):
 		self.pagestr = None
@@ -131,8 +132,7 @@ class Updater:
 
 	def insertOrUpdate(self, id, name, unis, years, advisors, dissertations, numberOfDescendants):
 		"""
-		Take the arguments and update or create the tables mathematicians, advised and dissertation
-		of the local database.
+		Update or create entries in the tables mathematicians, advised and dissertation of the local database.
 		Replace existing mathematicians.
 		"""
 		self.cursor.execute("DELETE FROM dissertation WHERE author=?", (id,))
