@@ -72,7 +72,7 @@ class DatabaseConnector:
 				self.connection.commit()
 
 			except sqlite3.Error:
-				print("Can neither create local database nor connect with an existing one!")
+				print(u"Can neither create local database nor connect with an existing one!".encode('utf-8'))
 				raise
 
 		connector = [self.connection, self.cursor]

@@ -105,12 +105,12 @@ class Searcher:
 		if not self.lcaMode:
 			# If there is only the start node in the set, then there are no ancestors
 			if len(self.ancestorSet) < 2:
-				print("There are no ancestors!")
+				print(u"There are no ancestors!".encode('utf-8'))
 
 			# Create DOT-file
 			else:
 				self.ancestorSet.remove(id)
-				print("The {} ancestor(s) of {} is/are {}".format(len(self.ancestorSet), id, self.ancestorSet))
+				print(u"The {} ancestor(s) of {} is/are {}".format(len(self.ancestorSet), id, self.ancestorSet).encode('utf-8'))
 				self.ancestorSet.add(id)
 				self.saveDotFile("All-Ancestors", id, self.ancestorSet)
 
@@ -137,12 +137,12 @@ class Searcher:
 		if not self.lcaMode:
 			# If there is only the start node in the set, then there are no descendants
 			if len(self.descendantSet) < 2:
-				print("There are no descendants!")
+				print(u"There are no descendants!".encode('utf-8'))
 
 			# Create DOT-file
 			else:
 				self.descendantSet.remove(id)
-				print("The {} descendant(s) of {} is/are {}".format(len(self.descendantSet), id, self.descendantSet))
+				print(u"The {} descendant(s) of {} is/are {}".format(len(self.descendantSet), id, self.descendantSet).encode('utf-8'))
 				self.descendantSet.add(id)
 				self.saveDotFile("All-Descendants", id, self.descendantSet)
 
@@ -174,22 +174,22 @@ class Searcher:
 
 		# If there is only the start node in the set, then there are no ancestors
 		if len(self.ancestorSet) < 2:
-			print("There are no ancestors!")
+			print(u"There are no ancestors!".encode('utf-8'))
 
 		else:
 			self.ancestorSet.remove(id)
-			print("The {} ancestor(s) of {} is/are {}".format(len(self.ancestorSet), id, self.ancestorSet))
+			print(u"The {} ancestor(s) of {} is/are {}".format(len(self.ancestorSet), id, self.ancestorSet).encode('utf-8'))
 			self.ancestorSet.add(id)
 
-			print("")
+			print(u"".encode('utf-8'))
 
 		# If there is only the start node in the set, then there are no descendants
 		if len(self.descendantSet) < 2:
-			print("There are no descendants!")
+			print(u"There are no descendants!".encode('utf-8'))
 
 		else:
 			self.descendantSet.remove(id)
-			print("The {} descendant(s) of {} is/are {}".format(len(self.descendantSet), id, self.descendantSet))
+			print(u"The {} descendant(s) of {} is/are {}".format(len(self.descendantSet), id, self.descendantSet).encode('utf-8'))
 			self.descendantSet.add(id)
 
 		# Create DOT-file
@@ -242,7 +242,7 @@ class Searcher:
 				id1 = self.recursiveLCA(id1, ids[i+1])
 
 		if len(id1) < 1:
-			print("There is no LCA!")
+			print(u"There is no LCA!".encode('utf-8'))
 
 		else:
 			for id in ids:
@@ -272,7 +272,7 @@ class Searcher:
 
 				self.cursor.execute("SELECT name FROM person WHERE pID=?", (singleLCA,))
 				lcaName = self.cursor.fetchone()
-				print("The LCA with {} common ancestors is {}: {}".format(self.maxPrefix, singleLCA, lcaName["name"]).encode('utf-8'))
+				print(u"The LCA with {} common ancestors is {}: {}".format(self.maxPrefix, singleLCA, lcaName["name"]).encode('utf-8'))
 
 			blackLCAset = self.LCAset.difference(redLCAset)
 
@@ -345,7 +345,7 @@ class Searcher:
 
 
 	def generatePathOf(self, id):
-		print("Generating paths of #{}".format(id))
+		print(u"Generating paths of #{}".format(id).encode('utf-8'))
 		nextAdvisors = self.createAdvisorSet(id)
 
 		if len(nextAdvisors) > 0:

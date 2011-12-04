@@ -70,7 +70,7 @@ class Grabber:
 			self.pagestr = self.pagestr.decode('utf-8')
 
 		except urllib2.URLError:
-			print("URLError: Try to get page again.")
+			print(u"URLError: Try to get page again.".encode('utf-8'))
 			self.getPage()
 
 
