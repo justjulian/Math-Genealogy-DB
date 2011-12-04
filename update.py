@@ -62,7 +62,7 @@ class Updater:
 			self.pagestr = self.pagestr.decode("utf-8")
 
 		except urllib2.URLError:
-			print("URLError: Try to get page again.")
+			print(u"URLError: Try to get page again.".encode('utf-8'))
 			self.getSearchPage(lastName)
 
 
@@ -125,9 +125,9 @@ class Updater:
 					self.insertOrUpdate(id, name, uni, year, advisors, dissertation, numberOfDescendants)
 
 		if not self.foundID:
-			print("There is either no mathematician in the online-database with that entered last name or there are too many. \
+			print(u"There is either no mathematician in the online-database with that entered last name or there are too many. \
 					You can check http://genealogy.math.ndsu.nodak.edu/search.php though and try to find the desired mathematician \
-					by using more search options. You can then use the ID of this mathematician to run Update-by-ID.")
+					by using more search options. You can then use the ID of this mathematician to run Update-by-ID.".encode('utf-8'))
 
 
 	def insertOrUpdate(self, id, name, unis, years, advisors, dissertations, numberOfDescendants):
@@ -182,7 +182,7 @@ class Updater:
 			# foundID indicates that the program runs in Update-by-Name mode. Following output
 			# is disturbing in this mode.
 			if not self.foundID:
-				print("\nGrabbing record #{}:".format(id))
+				print(u"\nGrabbing record #{}:".format(id).encode('utf-8'))
 
 			[name, uni, year, advisors, students, dissertation, numberOfDescendants] = grabber.extractNodeInformation()
 
@@ -194,7 +194,7 @@ class Updater:
 			raise
 
 		except IndexError:
-			print("Index Error: Grab again.")
+			print(u"Index Error: Grab again.".encode('utf-8'))
 			return self.grabNode(id)
 
 		return [name, uni, year, advisors, students, dissertation, numberOfDescendants]
@@ -273,7 +273,7 @@ class Updater:
 		self.cursor.execute("SELECT author FROM advised, dissertation WHERE student=dID AND advisor=?", (id,))
 		localStudents = self.cursor.fetchall()
 
-		print("Online descendants = {}".format(onlineNumber))
+		print(u"Online descendants = {}".format(onlineNumber).encode('utf-8'))
 
 		if len(localStudents) > 0:
 			storedStudents = set()
@@ -285,16 +285,16 @@ class Updater:
 			calculatedNumber = searcher.numberOfDescendants(storedStudents)
 
 			if calculatedNumber == onlineNumber:
-				print("In local database = {}".format(calculatedNumber))
-				print("Skip branch!")
+				print(u"In local database = {}".format(calculatedNumber).encode('utf-8'))
+				print(u"Skip branch!".encode('utf-8'))
 
 				return True
 
 			else:
-				print("In local database >= {}".format(calculatedNumber))
+				print(u"In local database >= {}".format(calculatedNumber).encode('utf-8'))
 
 			if calculatedNumber > onlineNumber:
-				print("Student(s) online deleted! Delete them in local database and grab this branch again.")
+				print(u"Student(s) online deleted! Delete them in local database and grab this branch again.".encode('utf-8'))
 
 				for delStudent in storedStudents:
 					self.cursor.execute("DELETE FROM dissertation WHERE author=?", (delStudent,))
@@ -302,9 +302,9 @@ class Updater:
 					self.connection.commit()
 
 		elif len(localStudents) == 0 and onlineNumber < 2:
-			print("In local database = 0")
+			print(u"In local database = 0".encode('utf-8'))
 
 		else:
-			print("In local database: N/A")
+			print(u"In local database: N/A".encode('utf-8'))
 
 		return False

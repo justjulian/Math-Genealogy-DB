@@ -68,11 +68,11 @@ class Visualizer:
 
 		for student in students:
 			if redSet is not None and student["author"] in redSet:
-				edgeStr = "\n    {} -> {} [color={}];".format(id, student["author"], color)
+				edgeStr = u"\n    {} -> {} [color={}];".format(id, student["author"], color).encode('utf-8')
 				edges += edgeStr
 
 			elif blackSet is not None and student["author"] in blackSet:
-				edgeStr = "\n    {} -> {} [color=black];".format(id, student["author"])
+				edgeStr = u"\n    {} -> {} [color=black];".format(id, student["author"]).encode('utf-8')
 				edges += edgeStr
 
 		return edges

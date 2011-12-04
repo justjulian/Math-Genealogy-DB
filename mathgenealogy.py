@@ -141,7 +141,7 @@ class Mathgenealogy:
 		self.database = options.database
 
 		if options.print_version:
-			print("Math-Genealogy-DB Version 1.0")
+			print(u"Math-Genealogy-DB Version 1.0".encode('utf-8'))
 			self.parser.exit()
 
 		# Check for no arguments
