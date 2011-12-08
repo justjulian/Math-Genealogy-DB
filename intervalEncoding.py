@@ -20,6 +20,8 @@
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
+import pickle
+
 
 class coding:
 
@@ -43,35 +45,26 @@ class coding:
 
 		previous = 1
 		for x in temp:
-			if x != previous:
-				self.tree.insert(0,((int(str(x)[1:-2])),0))
-			previous = x
+			if x["author"] != previous:
+				self.tree.insert(0,[x["author"],0])
+			previous = x["author"]
 
 		self.tree.insert(0,(0,'NULL'))
 
 		self.node()
 
 	#------selection function------
-	def selection(self, clause, table, condition):
-			result = []
-			querystring = 'select ' + clause + ' from ' + table + ' where ' + condition
-			self.c.execute(querystring)
-			temp = self.c.fetchall()
-			for x in range(len(temp)):
-					result.append(str(temp[x])[1:-2])
-			return result
-
 	def newselect(self,y,direction):
 		result = []
 		if direction == 1:
-				for x in self.tree:
-					if x[1] == y:
-						result.append(x[0])
+			for x in self.tree:
+				if x[1] != 'NULL' and x[1] == y:
+					result.append(x[0])
 
 		if direction == 0:
-				for x in self.tree:
-					if x[0] == y:
-						result.append(x[1])
+			for x in self.tree:
+				if x[0] == y:
+					result.append(x[1])
 
 		return result
 
@@ -97,54 +90,45 @@ class coding:
 
 			self.post.append(self.marked.pop())
 
-	#------LCA function for mutiple nodes------
 
-	def LCA(self, List):
+	def LCA(self, inputList):
 
-			# first check whether there is ans-des relation of each pair of nodes
-			N = []; D = []; PN=[]; PD=[]; p=[]
+		inputList = self.removerelation(inputList)
+		# first check whether there is ans-des relation of each pair of nodes
+		N = []; D = []; PN=[]; PD=[]
 
+		for x in inputList:
+			N.append(self.code[x][0]); D.append(self.code[x][1])
+			PN.append(self.code[x][2]); PD.append(self.code[x][3])
 
-			for x in List:
-					N.append(self.code[x][0]); D.append(self.code[x][1])
-					PN.append(self.code[x][2]); PD.append(self.code[x][3])
+		FN=1; FD=0
+		flag = 0; path = []
 
-			FN=1; FD=0
-			flag = 0; path = []
+		while flag == 0:
+			p=[]
+			for i in range(len(inputList)):
+				p.append(N[i]//D[i])
+				temp = D[i]; D[i] = N[i]-D[i]*p[i]; N[i] = temp
 
-			while flag == 0:
-					p=[]
-					for i in range(len(List)):
-							p.append(N[i]//D[i])
-							temp = D[i]; D[i] = N[i]-D[i]*p[i]; N[i] = temp
+			boolvalue = 1                #check all the elements in p[] is equal or not
 
-					boolvalue = 1                #check all the elements in p[] is equal or not
+			for i in range(len(p)-1):
+				if p[i] != p[i+1]:
+					boolvalue = 0
 
-	##                for x in p:
-	##                        print("p value:",x)
+			if boolvalue == 1:
+				temp = p[0]
+				path.append(temp)
 
-					for i in range(len(p)-1):
-							if p[i] != p[i+1]:
-									boolvalue = 0
+			else:
+				while len(path) > 0:
+					q=path.pop()
+					t=FD; FD=FN; FN=t
+					FN=q*FD + FN
 
-
-					if boolvalue == 1:
-							temp = p[0]
-							path.append(temp)
-	##                        for x in path:
-	##                                print("path: ",x)
-
-					else:
-							while len(path) > 0:
-									q=path.pop()
-									t=FD; FD=FN; FN=t
-									FN=q*FD + FN
-
-	##                        print ("found", FN,FD)
-
-							for x in self.code:
-								if self.code[x][0] == FN and self.code[x][1] == FD:
-									return x
+					for x in self.code:
+						if self.code[x][0] == FN and self.code[x][1] == FD:
+							return x
 
 
 	#------for root node------
@@ -161,96 +145,40 @@ class coding:
 		self.post.pop()
 		while flag == 0:
 
-				if len(self.post) != 0:
-						workingnode = self.post.pop()
+			if len(self.post) != 0:
+				workingnode = self.post.pop()
+				parents = self.newselect(workingnode,0)
+				parents = self.removerelation(parents)
 
-
-
-
-						parents = self.newselect(workingnode,0)
-		##
-		##                                print('step: ',count)
-		##                                print('node:',name[j])
-		##                                for x in parents:
-		##                                        print('parent:', x)
-
-						parents = self.removerelation(parents)
-
-						if len(parents) == 1 or parents == [0,0]:
-								LCAofparent = parents[0]
-		##                                        print(name[j], " didn't called LCA", LCAofparent)
-
-
-						else:
-##                            print(workingnode, " called LCA")
-##                            for x in parents:
-##                                print('with', x)
-								LCAofparent = self.LCA (parents)
-		##                                        print('return', LCAofparent)
-
-
-						nume = 1
-						for x in self.relation:
-							if self.relation[x] == LCAofparent:
-								nume = nume+1
-
-						num = self.code[LCAofparent]
-						PPN = num[0] + num[2]; PPD = num[1] + num[3]; PN = num[0]; PD = num[1]
-
-
-						D = PPD + PD*nume
-						N = PPN + PN*nume
-
-						# print('actual value', N,D,PN,PD)
-						# print()
-
-						self.code[workingnode] = [N, D, PN, PD]
-						self.relation[workingnode] = LCAofparent
-
-
+				if len(parents) == 1 or parents == [0,0]:
+					LCAofparent = parents[0]
 
 				else:
-						flag = 1
+					LCAofparent = self.LCA(parents)
 
-		print("LSAtree After encoding:")
-		print(self.code)
-		print
-		self.main2()
+				nume = 1
+				for x in self.relation:
+					if self.relation[x] == LCAofparent:
+						nume = nume+1
 
-	#------main(query)------
+				num = self.code[LCAofparent]
+				PPN = num[0] + num[2]; PPD = num[1] + num[3]; PN = num[0]; PD = num[1]
 
-	def main2(self):
-		print("Running LCSA query of mutiple nodes, please enter node IDs")
-		flag = 0; num = 1; inputlist = []; nodelist = ''; count = 0
+				D = PPD + PD*nume
+				N = PPN + PN*nume
 
-		while flag == 0:
-			promp ="node ID #" +str(num) +" or (E)nd:"
-			getin = input(promp)
-
-			if getin == 0:
-				if count == 0 or count == 1:
-					print("please enter at least two nodes")
-				else:
-					flag = 1
-					inputlist = self.removerelation(inputlist)
-					if len(inputlist) == 1:
-							LCSA = inputlist[0]
-					else:
-							LCSA = self.LCA(inputlist)
-
-					for x in inputlist:
-							nodelist = nodelist + str(x) +" "
-					print ("The LCSA of node",nodelist, "is node",LCSA)
-
-					return LCSA
+				self.code[workingnode] = [N, D, PN, PD]
+				self.relation[workingnode] = LCAofparent
 
 			else:
-				if int(getin) in self.relation:
-					inputlist.append(int(getin))
-					num = num +1
-					count = count +1
-				else:
-					print(getin, "is not a valid ID, please enter another one")
+				flag = 1
 
+		output1 = open('code.pkl', 'wb')
+		pickle.dump(self.code, output1)
+		output1.close()
+
+		output2 = open('relation.pkl', 'wb')
+		pickle.dump(self.relation, output2)
+		output2.close()
 
 		self.db.commit()
