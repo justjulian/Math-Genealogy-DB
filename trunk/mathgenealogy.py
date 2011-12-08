@@ -27,6 +27,7 @@ import update
 import search
 import databaseConnection
 import intervalEncoding
+import intervalQuery
 
 
 
@@ -45,6 +46,7 @@ class Mathgenealogy:
 		self.descendants = False
 		self.lca = False
 		self.ie = False
+		self.pk = False
 		self.aa = False
 		self.ad = False
 		self.web = False
@@ -107,6 +109,8 @@ class Mathgenealogy:
 		self.parser.add_option("-T", "--use-interval-encoding", action="store_true", dest="ie", default=False,
 							   help="Use interval encoding to compute the LSCA. Works only together with '-L'")
 
+		self.parser.add_option("-P", "--create-pickle-file", action="store_true", dest="pk", default=False,
+							   help="Create or replace pickle-file to use interval encoding. Works only together with '-T'")
 
 		self.parser.add_option("-s", "--save-to-file", dest="filename", metavar="FILE", default=None,
 							   help="Write output to a dot-file [default: stdout]. Only available for search methods, \
@@ -133,6 +137,7 @@ class Mathgenealogy:
 		self.descendants = options.descendants
 		self.lca = options.lca
 		self.ie = options.ie
+		self.pk = options.pk
 		self.aa = options.aa
 		self.ad = options.ad
 		self.web = options.web
@@ -214,8 +219,12 @@ class Mathgenealogy:
 
 		if self.lca:
 			if self.ie:
-				searcher = intervalEncoding(connector)
-				searcher.mainfun()
+				if self.pk:
+					createPickle = intervalEncoding.coding(connector)
+					createPickle.mainfun()
+
+				searcher = intervalQuery.query()
+				searcher.LCA(self.passedIDs)
 
 			else:
 				searcher = search.Searcher(connector, self.writeFilename, self.noDetails)
