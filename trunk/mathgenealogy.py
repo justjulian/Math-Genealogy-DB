@@ -218,8 +218,8 @@ class Mathgenealogy:
 			updater.updateByID(self.passedIDs, self.ancestors, self.descendants)
 
 		if self.lca:
-			if self.ie:
-				if self.pk:
+			if self.ie:    # BL: ... using interval encoding
+				if self.pk:  # BL: ... pk = true means: create pickle file
 					createPickle = intervalEncoding.coding(connector)
 					createPickle.mainfun()
 
