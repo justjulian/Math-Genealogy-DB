@@ -46,23 +46,26 @@ class query:
 				if parent == y:
 					inputList.remove(x)
 
-		return inputList     #after altering
+		return inputList     # after altering
 
 
 	def LCA(self, inputList):
 
 		inputList = self.removerelation(inputList)
-		# first check whether there is ans-des relation of each pair of nodes
+		# first check whether there is ancestor-descendent relation of each pair of nodes
 		N = []; D = []; PN=[]; PD=[]
-
+  
+    # obtain Farey fractions for node x: N/D is left bound, PN/PD is left bound of parent 
+    # (works for trees only; encoding already turned DAG into tree in previous steps)
 		for x in inputList:
 			N.append(self.code[x][0]); D.append(self.code[x][1])
 			PN.append(self.code[x][2]); PD.append(self.code[x][3])
 
 		FN=1; FD=0
-		flag = 0; path = []
+		flag = 0    # BL: needs to be removed!?
+    path = []
 
-		while flag == 0:
+		while flag == 0:  # BL: has no function??
 			p=[]
 			for i in range(len(inputList)):
 				p.append(N[i]//D[i])
@@ -86,5 +89,5 @@ class query:
 
 					for x in self.code:
 						if self.code[x][0] == FN and self.code[x][1] == FD:
-							print(u"The LCA is {}".format(x).encode('utf-8'))
+							print(u"The LCA (of the LCSA tree) is {}".format(x).encode('utf-8'))
 							return x
