@@ -55,18 +55,19 @@ class query:
 		# first check whether there is ancestor-descendent relation of each pair of nodes
 		N = []; D = []; PN=[]; PD=[]
   
-    # obtain Farey fractions for node x: N/D is left bound, PN/PD is left bound of parent 
-    # (works for trees only; encoding already turned DAG into tree in previous steps)
+		# obtain Farey fractions for node x: N/D is left bound, PN/PD is left bound of parent
+		# (works for trees only; encoding already turned DAG into tree in previous steps)
 		for x in inputList:
 			N.append(self.code[x][0]); D.append(self.code[x][1])
 			PN.append(self.code[x][2]); PD.append(self.code[x][3])
 
-		FN=1; FD=0
-		flag = 0    # BL: needs to be removed!?
-    path = []
+		FN=1
+		FD=0
+		path = []
 
-		while flag == 0:  # BL: has no function??
-			p=[]
+		while True:
+			p = []
+
 			for i in range(len(inputList)):
 				p.append(N[i]//D[i])
 				temp = D[i]; D[i] = N[i]-D[i]*p[i]; N[i] = temp
