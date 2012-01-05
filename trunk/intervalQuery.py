@@ -78,9 +78,10 @@ class query:
 				if p[i] != p[i+1]:
 					boolvalue = 0
 
-			if boolvalue == 1:
+  	# if all the elements in the p[] are the same, which means all the paths to nodes in the list are the same by now
+  		 if boolvalue == 1:  
 				temp = p[0]
-				path.append(temp)
+        path.append(temp) 
 
 			else:
 				while len(path) > 0:
