@@ -27,6 +27,7 @@ class query:
 
 	def __init__(self):
 
+    #read two files in the constructer
 		pkl_file1 = open('code.pkl', 'rb')
 		self.code = pickle.load(pkl_file1)
 
@@ -61,13 +62,12 @@ class query:
 			N.append(self.code[x][0]); D.append(self.code[x][1])
 			PN.append(self.code[x][2]); PD.append(self.code[x][3])
 
-		FN=1
-		FD=0
-		path = []
+		FN=1; FD=0; path = []
 
 		while True:
-			p = []
 
+      #calculate one level of the path for every node
+  		p = []
 			for i in range(len(inputList)):
 				p.append(N[i]//D[i])
 				temp = D[i]; D[i] = N[i]-D[i]*p[i]; N[i] = temp
@@ -83,12 +83,14 @@ class query:
 				temp = p[0]
         path.append(temp) 
 
+      # if some of the elements in the p[] is different, which means the paths differ from now on, we find the LCA
 			else:
 				while len(path) > 0:
 					q=path.pop()
 					t=FD; FD=FN; FN=t
 					FN=q*FD + FN
 
+          # search for the name of the node has the interval [FN/FD,x]
 					for x in self.code:
 						if self.code[x][0] == FN and self.code[x][1] == FD:
 							print(u"The LCA (of the LCSA tree) is {}".format(x).encode('utf-8'))
