@@ -36,19 +36,21 @@ class coding:
 		self.code = {}
 
 	def mainfun(self):
-		#find the source node of the sub dag, and insert the NULL pair value
+		#find the source node of the sub dag 
 		self.c.execute("SELECT author, advisor FROM advised, dissertation WHERE student = dID ")
 		self.tree = self.c.fetchall()
 
 		self.c.execute("SELECT author FROM dissertation EXCEPT SELECT author FROM advised, dissertation WHERE student = dID")
 		temp = self.c.fetchall()
 
+    #insert the NULL pair value
 		previous = 1
 		for x in temp:
 			if x["author"] != previous:
 				self.tree.insert(0,[x["author"],0])
 			previous = x["author"]
 
+    #add root node labeled "0"
 		self.tree.insert(0,(0,'NULL'))
 
 		self.node()
@@ -56,11 +58,14 @@ class coding:
 	#------selection function------
 	def newselect(self,y,direction):
 		result = []
+      
+    #select the children of a node
 		if direction == 1:
 			for x in self.tree:
 				if x[1] != 'NULL' and x[1] == y:
 					result.append(x[0])
-
+    
+    #select the parents of a node
 		if direction == 0:
 			for x in self.tree:
 				if x[0] == y:
@@ -88,6 +93,7 @@ class coding:
 			for y in child:
 				self.dfs(y)
 
+      #"post" contains the order of all the nodes
 			self.post.append(self.marked.pop())
 
 
@@ -134,6 +140,7 @@ class coding:
 	#------for root node------
 	def node(self):
 
+    self.post.pop()
 		self.relation[0] = 'NULL'
 		self.code[0] = [2,1,1,0]
 
@@ -141,42 +148,47 @@ class coding:
 
 		flag = 0; count = 1
 		self.dfs(0)
-		print(self.post)
-		self.post.pop()
-		while flag == 0:
+		#print(self.post)
 
-			if len(self.post) != 0:
+		while len(self.post) != 0:
+
 				workingnode = self.post.pop()
 				parents = self.newselect(workingnode,0)
 				parents = self.removerelation(parents)
 
+        #if there is only one parent, we simple add an edge from the parent to the node
 				if len(parents) == 1 or parents == [0,0]:
 					LCAofparent = parents[0]
 
 				else:
 					LCAofparent = self.LCA(parents)
 
+        #count the number of encoded children the LCAofparent has already haven
 				nume = 1
 				for x in self.relation:
 					if self.relation[x] == LCAofparent:
 						nume = nume+1
 
+        #get the code of the LCAofparent
 				num = self.code[LCAofparent]
 				PPN = num[0] + num[2]; PPD = num[1] + num[3]; PN = num[0]; PD = num[1]
 
+        #calculate the code of that node
 				D = PPD + PD*nume
 				N = PPN + PN*nume
 
+        #insert the code [N, D, PN, PD] in the "code" dictinonary
 				self.code[workingnode] = [N, D, PN, PD]
 				self.relation[workingnode] = LCAofparent
 
-			else:
-				flag = 1
 
+    # write it to a pickle file
+    #code contain the code of every node
 		output1 = open('code.pkl', 'wb')
 		pickle.dump(self.code, output1)
 		output1.close()
 
+    #relation contains all the edges in the tree
 		output2 = open('relation.pkl', 'wb')
 		pickle.dump(self.relation, output2)
 		output2.close()
