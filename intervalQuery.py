@@ -38,8 +38,8 @@ class query:
 		pkl_file2.close()
 
 
-	#------removerelation function------
-	def removerelation(self, inputList):
+  #------removerelation function------
+  def removerelation(self, inputList):
 		for x in inputList:
 			parent = self.relation[x]
 
@@ -50,7 +50,7 @@ class query:
 		return inputList     # after altering
 
 
-	def LCA(self, inputList):
+  def LCA(self, inputList):
 
 		inputList = self.removerelation(inputList)
 		# first check whether there is ancestor-descendent relation of each pair of nodes
@@ -67,7 +67,7 @@ class query:
 		while True:
 
       #calculate one level of the path for every node
-  		p = []
+      p = []
 			for i in range(len(inputList)):
 				p.append(N[i]//D[i])
 				temp = D[i]; D[i] = N[i]-D[i]*p[i]; N[i] = temp
@@ -78,9 +78,9 @@ class query:
 				if p[i] != p[i+1]:
 					boolvalue = 0
 
-  	# if all the elements in the p[] are the same, which means all the paths to nodes in the list are the same by now
-  		 if boolvalue == 1:  
-				temp = p[0]
+# if all the elements in the p[] are the same, which means all the paths to nodes in the list are the same by now
+      if boolvalue == 1:
+        temp = p[0]
         path.append(temp) 
 
       # if some of the elements in the p[] is different, which means the paths differ from now on, we find the LCA
