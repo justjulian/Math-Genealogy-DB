@@ -139,10 +139,9 @@ class coding:
 
   #------for root node------
    def node(self):
-
-    self.post.pop()
-		self.relation[0] = 'NULL'
-		self.code[0] = [2,1,1,0]
+     self.post.pop()
+     self.relation[0] = 'NULL'
+     self.code[0] = [2,1,1,0]
 
 		#-------for other nodes--------
 
