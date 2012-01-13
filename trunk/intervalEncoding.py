@@ -35,7 +35,7 @@ class coding:
 		self.relation = {}
 		self.code = {}
 
-	def mainfun(self):
+  def mainfun(self):
 		#find the source node of the sub dag 
 		self.c.execute("SELECT author, advisor FROM advised, dissertation WHERE student = dID ")
 		self.tree = self.c.fetchall()
@@ -56,7 +56,7 @@ class coding:
 		self.node()
 
 	#------selection function------
-	def newselect(self,y,direction):
+  def newselect(self,y,direction):
 		result = []
       
     #select the children of a node
@@ -74,7 +74,7 @@ class coding:
 		return result
 
 	#------removerelation function------
-	def removerelation(self, List):
+  def removerelation(self, List):
 		for x in List:
 			parent = self.relation[x]
 			for y in List:
@@ -83,7 +83,7 @@ class coding:
 
 		return List     #after altering
 
-	def dfs(self, x):
+  def dfs(self, x):
 		if x not in self.post:
 			## print("now, the x is",x,"post is",post)
 			self.marked.append(x)
@@ -97,7 +97,7 @@ class coding:
 			self.post.append(self.marked.pop())
 
 
-	def LCA(self, inputList):
+  def LCA(self, inputList):
 
 		inputList = self.removerelation(inputList)
 		# first check whether there is ans-des relation of each pair of nodes
@@ -116,17 +116,17 @@ class coding:
 				p.append(N[i]//D[i])
 				temp = D[i]; D[i] = N[i]-D[i]*p[i]; N[i] = temp
 
-			boolvalue = 1                #check all the elements in p[] is equal or not
+      boolvalue = 1                #check all the elements in p[] is equal or not
 
 			for i in range(len(p)-1):
 				if p[i] != p[i+1]:
 					boolvalue = 0
 
-			if boolvalue == 1:
+      if boolvalue == 1:
 				temp = p[0]
 				path.append(temp)
 
-			else:
+       else:
 				while len(path) > 0:
 					q=path.pop()
 					t=FD; FD=FN; FN=t
@@ -137,7 +137,7 @@ class coding:
 							return x
 
 
-	#------for root node------
+  #------for root node------
 	def node(self):
 
     self.post.pop()
