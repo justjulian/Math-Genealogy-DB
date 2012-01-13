@@ -55,7 +55,7 @@ class coding:
 
 		self.node()
 
-	#------selection function------
+  #------selection function------
   def newselect(self,y,direction):
 		result = []
       
@@ -73,7 +73,7 @@ class coding:
 
 		return result
 
-	#------removerelation function------
+  #------removerelation function------
   def removerelation(self, List):
 		for x in List:
 			parent = self.relation[x]
@@ -126,7 +126,7 @@ class coding:
 				temp = p[0]
 				path.append(temp)
 
-       else:
+      else:
 				while len(path) > 0:
 					q=path.pop()
 					t=FD; FD=FN; FN=t
@@ -138,7 +138,7 @@ class coding:
 
 
   #------for root node------
-	def node(self):
+   def node(self):
 
     self.post.pop()
 		self.relation[0] = 'NULL'
