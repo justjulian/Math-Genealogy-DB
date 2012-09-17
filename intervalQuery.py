@@ -27,7 +27,7 @@ class query:
 
 	def __init__(self):
 
-    #read two files in the constructer
+	#read two files in the constructer
 		pkl_file1 = open('code.pkl', 'rb')
 		self.code = pickle.load(pkl_file1)
 
@@ -38,59 +38,59 @@ class query:
 		pkl_file2.close()
 
 
-  #------removerelation function------
-  def removerelation(self, inputList):
+	#------removerelation function------
+	def removerelation(self, inputList):
 		for x in inputList:
 			parent = self.relation[x]
-
+	
 			for y in inputList:
 				if parent == y:
 					inputList.remove(x)
-
+	
 		return inputList     # after altering
 
 
-  def LCA(self, inputList):
-
+	def LCA(self, inputList):
+	
 		inputList = self.removerelation(inputList)
 		# first check whether there is ancestor-descendent relation of each pair of nodes
 		N = []; D = []; PN=[]; PD=[]
-  
+	
 		# obtain Farey fractions for node x: N/D is left bound, PN/PD is left bound of parent
 		# (works for trees only; encoding already turned DAG into tree in previous steps)
 		for x in inputList:
 			N.append(self.code[x][0]); D.append(self.code[x][1])
 			PN.append(self.code[x][2]); PD.append(self.code[x][3])
-
+	
 		FN=1; FD=0; path = []
-
+	
 		while True:
 
-      #calculate one level of the path for every node
-      p = []
+			#calculate one level of the path for every node
+			p = []
 			for i in range(len(inputList)):
 				p.append(N[i]//D[i])
 				temp = D[i]; D[i] = N[i]-D[i]*p[i]; N[i] = temp
-
+			
 			boolvalue = 1                #check all the elements in p[] is equal or not
-
+			
 			for i in range(len(p)-1):
 				if p[i] != p[i+1]:
 					boolvalue = 0
-
-# if all the elements in the p[] are the same, which means all the paths to nodes in the list are the same by now
-      if boolvalue == 1:
-        temp = p[0]
-        path.append(temp) 
-
-      # if some of the elements in the p[] is different, which means the paths differ from now on, we find the LCA
+			
+				# if all the elements in the p[] are the same, which means all the paths to nodes in the list are the same by now
+			if boolvalue == 1:
+				temp = p[0]
+				path.append(temp)
+			
+				# if some of the elements in the p[] is different, which means the paths differ from now on, we find the LCA
 			else:
 				while len(path) > 0:
 					q=path.pop()
 					t=FD; FD=FN; FN=t
 					FN=q*FD + FN
-
-          # search for the name of the node has the interval [FN/FD,x]
+			
+					# search for the name of the node has the interval [FN/FD,x]
 					for x in self.code:
 						if self.code[x][0] == FN and self.code[x][1] == FD:
 							print(u"The LCA (of the LCSA tree) is {}".format(x).encode('utf-8'))
