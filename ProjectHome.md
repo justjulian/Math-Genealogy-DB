@@ -1,0 +1,2 @@
+The goal is to write a Python script to download the entire Mathematics Genealogy Project database and to store it in a local SQLite database or update an existing one. This provides offline-access and therefore, a faster access to the database is possible. There will also be an option to visualize the data via Graphviz.
+Another task is to upgrade the Python script to support specific search queries on the local SQLite database.
